@@ -14,7 +14,7 @@ App（Swift + AppKit），后台数据同步用 Python 脚本。
   分，总成绩会变成多少"
 - **提醒时间**：像苹果闹钟一样设置多个自动同步时间点，每条单独开关、可
   设置只在某几天重复
-- **手机推送**：ntfy / 微信（Server酱）/ 苹果快捷指令，三选一，也可以不用
+- **手机推送**：ntfy / Discord / 苹果快捷指令，三选一，也可以不用
 - **日历同步**：自动把有截止日期的作业同步进 Mac"日历"App
 - 三层日期解析：Canvas 正式设置的 → 作业说明文字里猜的 → 课程 Syllabus 里
   猜的（比如期中考试日期经常只写在 Syllabus 里）
@@ -50,8 +50,8 @@ cd canvas-project
 
 - **ntfy**（推荐）：跨平台，手机 App Store 装"ntfy"，订阅向导里生成的频
   道名即可
-- **微信**：通过 [Server酱](https://sct.ftqq.com)（一个第三方免费服务）
-  转发到你自己的微信，扫码登录拿 SendKey
+- **Discord**：Discord 频道设置 →「整合」→「Webhook」→「新增 Webhook」，
+  把生成的网址填进去，不用邀请机器人
 - **苹果快捷指令**：纯苹果生态不依赖第三方，Mac"快捷指令"App 里建一个接
   收文字、"发送信息"给自己的快捷指令
 
@@ -64,7 +64,7 @@ canvas_sync.py          主同步脚本，串联下面所有模块
 canvas_grades.py        成绩计算
 canvas_materials.py     课程资料同步
 canvas_calendar.py      日历同步
-canvas_notify.py        手机推送（ntfy/微信/快捷指令）
+canvas_notify.py        手机推送（ntfy/Discord/快捷指令）
 canvas_dashboard.py     作业看板网页生成
 due_date_parser.py      从文字/Syllabus猜日期
 native_app/             原生 Swift App 源码

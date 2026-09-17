@@ -4,8 +4,8 @@ Canvas 作业推送脚本
 NOTIFY_METHOD 选择：
 
 - ntfy（推荐，最简单，跨平台）：手机装 ntfy App，订阅 NTFY_TOPIC 这个频道名
-- wechat（微信，通过 Server酱 中转，第三方免费服务）：
-  https://sct.ftqq.com 用微信扫码登录拿 SendKey，填到 WECHAT_SENDKEY
+- discord（发到 Discord 频道）：服务器设置 → 整合 → Webhook → 新建 Webhook，
+  把生成的网址填到 DISCORD_WEBHOOK_URL
 - shortcuts（苹果快捷指令，纯苹果生态，不依赖第三方）：
   Mac 上"快捷指令"App 建一个接收文本输入、用"发送信息"发给自己的快捷指令，
   把它的名字填到 SHORTCUTS_NAME
@@ -36,7 +36,7 @@ if not NOTIFY_METHOD:
     NOTIFY_METHOD = "ntfy" if os.getenv("NTFY_TOPIC") else "none"
 
 NTFY_TOPIC = os.getenv("NTFY_TOPIC")
-WECHAT_SENDKEY = os.getenv("WECHAT_SENDKEY")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
 SHORTCUTS_NAME = os.getenv("SHORTCUTS_NAME")
 
 
@@ -84,23 +84,21 @@ def send_ntfy(title, body):
         print(resp.text[:300])
 
 
-def send_wechat(title, body):
-    if not WECHAT_SENDKEY:
-        print("❌ 缺少 .env 里的 WECHAT_SENDKEY")
+def send_discord(title, body):
+    if not DISCORD_WEBHOOK_URL:
+        print("❌ 缺少 .env 里的 DISCORD_WEBHOOK_URL")
         return
+    description = body if len(body) <= 4000 else body[:4000] + "\n...(内容太长，截断了)"
     resp = requests.post(
-        f"https://sctapi.ftqq.com/{WECHAT_SENDKEY}.send",
-        data={"title": title, "desp": body},
+        DISCORD_WEBHOOK_URL,
+        json={"embeds": [{"title": title[:256], "description": description}]},
         timeout=10,
     )
-    try:
-        ok = resp.json().get("code") == 0
-    except ValueError:
-        ok = False
-    if ok:
-        print(f"✅ 已通过微信推送：{title}")
+    if resp.status_code in (200, 204):
+        print(f"✅ 已通过 Discord 推送：{title}")
     else:
-        print(f"❌ 微信推送失败：{resp.text[:300]}")
+        print(f"❌ Discord 推送失败，状态码：{resp.status_code}")
+        print(resp.text[:300])
 
 
 def send_shortcuts(title, body):
@@ -136,8 +134,8 @@ def notify(days):
 
     if NOTIFY_METHOD == "ntfy":
         send_ntfy(title, body)
-    elif NOTIFY_METHOD == "wechat":
-        send_wechat(title, body)
+    elif NOTIFY_METHOD == "discord":
+        send_discord(title, body)
     elif NOTIFY_METHOD == "shortcuts":
         send_shortcuts(title, body)
     else:

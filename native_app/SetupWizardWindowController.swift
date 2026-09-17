@@ -12,7 +12,7 @@ class SetupWizardWindowController: NSWindowController {
     private var selectedCourseIDs: Set<Int> = []
     private var notifyMethod = "none"
     private var ntfyTopicValue = ""
-    private var wechatSendKeyValue = ""
+    private var discordWebhookValue = ""
     private var shortcutsNameValue = ""
 
     private var stepContainer: NSView!
@@ -254,7 +254,7 @@ class SetupWizardWindowController: NSWindowController {
     private var notifyRadios: [(method: String, button: NSButton)] = []
     private var notifyDetailContainer: NSView!
     private var ntfyField: NSTextField!
-    private var wechatField: NSTextField!
+    private var discordField: NSTextField!
     private var shortcutsField: NSTextField!
 
     private func showStep3() {
@@ -265,7 +265,7 @@ class SetupWizardWindowController: NSWindowController {
         let options: [(String, String)] = [
             ("none", "不需要，只看网页仪表盘"),
             ("ntfy", "ntfy（推荐）—— 跨平台，手机装个 App 就行"),
-            ("wechat", "微信 —— 通过 Server酱 这个第三方免费服务转发到微信"),
+            ("discord", "Discord —— 发到你自己的 Discord 频道"),
             ("shortcuts", "苹果快捷指令 —— 纯苹果自家生态，不用第三方服务"),
         ]
         let radioStack = NSStackView()
@@ -325,14 +325,14 @@ class SetupWizardWindowController: NSWindowController {
             stack.alignment = .leading
             stack.spacing = 8
             detail = stack
-        case "wechat":
-            let hint = hintLabel("打开 sct.ftqq.com（Server酱，一个很多人用的免费微信推送中转服务），用微信扫码登录后复制你的 SendKey，粘贴到下面：")
-            wechatField = NSTextField()
-            wechatField.placeholderString = "SendKey"
-            wechatField.stringValue = wechatSendKeyValue
-            wechatField.translatesAutoresizingMaskIntoConstraints = false
-            wechatField.widthAnchor.constraint(equalToConstant: 300).isActive = true
-            let stack = NSStackView(views: [hint, wechatField])
+        case "discord":
+            let hint = hintLabel("在你的 Discord 服务器里：频道设置 →「整合」→「Webhook」→「新增 Webhook」，复制生成的网址粘贴到下面（不用邀请机器人，纯网址推送）：")
+            discordField = NSTextField()
+            discordField.placeholderString = "https://discord.com/api/webhooks/..."
+            discordField.stringValue = discordWebhookValue
+            discordField.translatesAutoresizingMaskIntoConstraints = false
+            discordField.widthAnchor.constraint(equalToConstant: 340).isActive = true
+            let stack = NSStackView(views: [hint, discordField])
             stack.orientation = .vertical
             stack.alignment = .leading
             stack.spacing = 8
@@ -368,7 +368,7 @@ class SetupWizardWindowController: NSWindowController {
 
     @objc private func step3FinishTapped() {
         ntfyTopicValue = ntfyField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        wechatSendKeyValue = wechatField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        discordWebhookValue = discordField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         shortcutsNameValue = shortcutsField?.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         showStep4()
     }
@@ -407,8 +407,8 @@ class SetupWizardWindowController: NSWindowController {
         switch notifyMethod {
         case "ntfy":
             envLines.append("NTFY_TOPIC=\(ntfyTopicValue)")
-        case "wechat":
-            envLines.append("WECHAT_SENDKEY=\(wechatSendKeyValue)")
+        case "discord":
+            envLines.append("DISCORD_WEBHOOK_URL=\(discordWebhookValue)")
         case "shortcuts":
             envLines.append("SHORTCUTS_NAME=\(shortcutsNameValue)")
         default:
