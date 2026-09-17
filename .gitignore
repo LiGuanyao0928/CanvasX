@@ -1,0 +1,32 @@
+# 每个人自己的账号信息和数据——这些绝对不能提交，每个用户通过设置向导
+# 生成自己的一份。
+.env
+tracked_courses.json
+schedule.json
+calendar_synced_ids.json
+canvas.db
+canvas.db-journal
+com.guanyao.canvassync.plist
+
+# 每次同步自动生成的网页（个人数据），不是源代码，不用提交
+dashboard.html
+materials.html
+grades.html
+
+# 下载下来的课程文件——别人自己同步就会有，占地方也是个人数据
+materials/
+
+# 运行日志
+logs/
+
+# Python 虚拟环境 + 编译缓存
+.venv/
+__pycache__/
+*.pyc
+
+# 编译产物——每个人用 native_app/build.sh 自己编译签名，不提交二进制
+native_app/CanvasDashboardApp
+CanvasDashboard.app/
+
+# 系统/编辑器杂项文件
+.DS_Store
