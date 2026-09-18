@@ -1,0 +1,150 @@
+/* 全局共享的配色变量 —— 作业看板/资料/成绩/设置向导/设置面板/提醒时间用的都是这一份，
+   保证视觉一致，也让"跟随系统/浅色/深色"这件事完全交给 CSS 处理，不再需要原生代码
+   手动同步外观（那条路上出过好几个真实 bug：CALayer 颜色快照过期、NSApp.appearance
+   不会自动刷新已打开的窗口……CSS 变量 + prefers-color-scheme 没有这类问题）。
+
+   默认跟随系统（prefers-color-scheme）；<html> 上加 data-theme="light" 或
+   data-theme="dark" 可以强制覆盖——这是设置面板"外观"选项的实现方式，原生 shell
+   只需要把这个属性写进页面即可，不用自己解析颜色。 */
+
+:root {
+  --bg: #ffffff;
+  --card-bg: #ffffff;
+  --text: #0d0d0d;
+  --muted: #6e6e80;
+  --border: #e5e5e5;
+  --hover: #f7f7f8;
+  --accent: #0d0d0d;
+  --accent-contrast: #ffffff;
+  --danger: #d1453b;
+  --warning: #b25000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #212121;
+    --card-bg: #2a2a2a;
+    --text: #ececec;
+    --muted: #9b9b9b;
+    --border: #3a3a3a;
+    --hover: #333333;
+    --accent: #ececec;
+    --accent-contrast: #171717;
+    --danger: #f2726a;
+    --warning: #ffb454;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --card-bg: #ffffff;
+  --text: #0d0d0d;
+  --muted: #6e6e80;
+  --border: #e5e5e5;
+  --hover: #f7f7f8;
+  --accent: #0d0d0d;
+  --accent-contrast: #ffffff;
+  --danger: #d1453b;
+  --warning: #b25000;
+}
+
+:root[data-theme="dark"] {
+  --bg: #212121;
+  --card-bg: #2a2a2a;
+  --text: #ececec;
+  --muted: #9b9b9b;
+  --border: #3a3a3a;
+  --hover: #333333;
+  --accent: #ececec;
+  --accent-contrast: #171717;
+  --danger: #f2726a;
+  --warning: #ffb454;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn:hover { background: var(--hover); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-danger { color: var(--danger); }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+input[type="text"], input[type="password"], input[type="number"] {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+input:focus { outline: none; border-color: var(--muted); }
+
+label.field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.error-text { color: var(--danger); font-size: 12px; }
+.warning-text { color: var(--warning); font-size: 12px; }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--text);
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+.checkbox-row input { margin-top: 2px; }

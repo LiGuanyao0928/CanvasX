@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using CanvasDashboard.Services;
-using CanvasDashboard.Views;
 using Microsoft.Web.WebView2.Core;
 
 namespace CanvasDashboard;
@@ -46,6 +45,11 @@ public partial class MainWindow : Window
         }
 
         _webViewReady = true;
+        // "提醒时间"现在也是网页（schedule.html），跟其它三个板块共用这同一个 WebView2，
+        // 所以这里要装桥接（NativeBridge）+ 主题同步（ThemeManager），跟 WebPageWindow
+        // 打开设置向导/设置面板时做的事是一样的。
+        NativeBridge.Install(Browser.CoreWebView2);
+        ThemeManager.RegisterWebView(Browser.CoreWebView2);
         Browser.CoreWebView2.NavigationStarting += CoreWebView2_NavigationStarting;
         Browser.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
     }
@@ -62,22 +66,15 @@ public partial class MainWindow : Window
     public void NavigateSection(int index)
     {
         _currentSection = index;
-        var showSchedule = index == 3;
-
-        ScheduleViewControl.Visibility = showSchedule ? Visibility.Visible : Visibility.Collapsed;
-        Browser.Visibility = showSchedule ? Visibility.Collapsed : Visibility.Visible;
         UpdateSidebarSelection(index);
 
-        if (showSchedule)
-        {
-            ScheduleViewControl.Reload();
-            return;
-        }
-
+        // 四个板块现在完全对称——都是"加载不同的静态网页"，"提醒时间"不再是原生
+        // UserControl，跟 Mac 版 sectionChanged(_:) 的 switch 语句一一对应。
         var path = index switch
         {
             1 => ProjectPaths.MaterialsHtml,
             2 => ProjectPaths.GradesHtml,
+            3 => ProjectPaths.ScheduleHtml,
             _ => ProjectPaths.DashboardHtml,
         };
         LoadPage(path);
@@ -225,11 +222,10 @@ public partial class MainWindow : Window
         NavigateSection(1);
     }
 
-    // MARK: - 设置窗口
+    // MARK: - 设置窗口（现在是共享网页 settings.html，见 App.ShowSettings）
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        var settings = new SettingsWindow { Owner = this };
-        settings.Show();
+        App.ShowSettings(this);
     }
 }

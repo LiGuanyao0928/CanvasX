@@ -1,0 +1,15 @@
+<Window x:Class="CanvasDashboard.Views.WebPageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="Canvas 作业追踪"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
+        Loaded="Window_Loaded">
+    <!-- 通用的"开一个窗口显示一个本地网页"外壳——没有别的原生 UI，网页自己就是全部内容。
+         设置向导 (setup_wizard.html) 和设置面板 (settings.html) 都用这一个窗口类，
+         对应 Mac 版 WebPageWindowController.swift。 -->
+    <Grid>
+        <wv2:WebView2 x:Name="Browser" />
+    </Grid>
+</Window>

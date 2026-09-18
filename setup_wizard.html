@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>欢迎使用 Canvas 作业追踪</title>
+<link rel="stylesheet" href="app_theme.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .wizard-card { width: 420px; max-width: 100%; }
+  .icon-badge {
+    width: 56px; height: 56px; border-radius: 14px; background: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    margin: 0 auto 16px;
+  }
+  h1.step-title { font-size: 19px; font-weight: 700; margin: 0 0 6px; text-align: center; }
+  .step-subtitle { text-align: center; margin-bottom: 24px; }
+  .field { margin-bottom: 14px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-row .btn { flex: 1; }
+  .step { display: none; }
+  .step.active { display: block; }
+  details.help { margin: 10px 0; font-size: 12px; }
+  details.help summary { cursor: pointer; color: var(--muted); }
+  details.help p { color: var(--muted); line-height: 1.6; }
+  .course-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; }
+  .course-list label { display: block; padding: 6px 0; font-size: 13px; }
+  .notify-option { display: block; padding: 8px 0; font-size: 13px; }
+  .notify-detail { margin-top: 10px; padding: 12px; background: var(--bg); border-radius: 10px; }
+  .center-spinner { text-align: center; padding: 60px 0; }
+  .center-spinner .spinner { width: 22px; height: 22px; border-width: 3px; }
+</style>
+</head>
+<body>
+<div class="card wizard-card">
+  <div class="icon-badge">🎓</div>
+
+  <!-- ===== 第 1 步：连接账号 ===== -->
+  <div class="step active" id="step1">
+    <h1 class="step-title">连接你的 Canvas 账号</h1>
+    <p class="hint step-subtitle">登录一次，之后每天自动帮你追作业、算成绩、整理课程资料</p>
+
+    <p class="hint" style="margin-bottom:16px">在 Canvas 网页里，进入「账户 → 设置」，拉到最下面点「+新建访问令牌」，把生成的 Token 粘贴到下面。网址就是你平时登录 Canvas 用的那个网址（不用带后面的路径）。</p>
+
+    <div class="field">
+      <label class="field-label">Canvas 网址</label>
+      <input type="text" id="urlInput" placeholder="https://yourschool.instructure.com">
+    </div>
+    <div class="field">
+      <label class="field-label">Access Token</label>
+      <input type="password" id="tokenInput">
+    </div>
+
+    <details class="help">
+      <summary>生成不了 / 找不到 Token？</summary>
+      <p>这通常是学校 Canvas 管理员关掉了学生自主生成 Token 的权限，不是你操作有问题。解决办法：找任课老师或学校 IT/教务，请他们在 Canvas 管理后台给你开启「用户自主生成访问令牌」的权限。目前没有不需要 Token 就能用的替代方案——Canvas 官方的应用授权（OAuth）流程需要学校管理员审批，普通学生个人没法自己申请。</p>
+    </details>
+
+    <p class="hint" style="margin:14px 0 8px">这个 App 完全在你自己电脑上运行：Canvas 网址和 Token 只保存在本机，不会上传到 Canvas 官方以外的任何服务器；开启手机推送的话，作业标题会发给你自己选的推送服务。这是同学做的个人小工具，不是学校或 Canvas 官方产品。</p>
+    <label class="checkbox-row"><input type="checkbox" id="privacyCheck"> 我已阅读并同意上面的说明</label>
+
+    <label class="checkbox-row" style="margin-top:10px"><input type="checkbox" id="rememberCheck" checked> 记住我的登录信息（下次自动打开，不用重新输入）</label>
+    <p class="warning-text" style="margin:4px 0 0 22px">⚠️ 不是你自己的私人电脑（比如图书馆/机房的公用电脑）？取消勾选——退出 App 时会自动清除这台电脑上的登录信息，不会留给下一个用的人看到。</p>
+
+    <p class="error-text" id="step1Error" style="display:none;margin-top:12px"></p>
+
+    <div class="btn-row">
+      <span class="spinner" id="step1Spinner" style="display:none;align-self:center"></span>
+      <button class="btn btn-primary" id="step1Next" disabled>下一步</button>
+    </div>
+  </div>
+
+  <!-- ===== 第 2 步：选课程 ===== -->
+  <div class="step" id="step2">
+    <h1 class="step-title">选择要追踪的课程</h1>
+    <p class="hint" style="margin-bottom:14px">勾选真正要交作业的课。像「学术诚信培训」「新生导师」这类不是正课的模块不用选——之后随时能在设置里重新选课。</p>
+    <div class="course-list" id="courseList"></div>
+    <div class="btn-row">
+      <button class="btn" id="step2Back">上一步</button>
+      <button class="btn btn-primary" id="step2Next">下一步</button>
+    </div>
+  </div>
+
+  <!-- ===== 第 3 步：手机推送 ===== -->
+  <div class="step" id="step3">
+    <h1 class="step-title">手机推送提醒（可选）</h1>
+    <p class="hint" style="margin-bottom:14px">不开也可以，随时打开 App 看网页仪表盘一样能看到要交的作业。要开的话选一种方式：</p>
+    <label class="notify-option"><input type="radio" name="notify" value="none" checked> 不需要，只看网页仪表盘</label>
+    <label class="notify-option"><input type="radio" name="notify" value="ntfy"> ntfy（推荐）—— 跨平台，手机装个 App 就行</label>
+    <label class="notify-option"><input type="radio" name="notify" value="discord"> Discord —— 发到你自己的 Discord 频道</label>
+    <label class="notify-option" id="shortcutsOption" style="display:none"><input type="radio" name="notify" value="shortcuts"> 苹果快捷指令 —— 纯苹果自家生态，不用第三方服务</label>
+    <div class="notify-detail" id="notifyDetail" style="display:none"></div>
+    <div class="btn-row">
+      <button class="btn" id="step3Back">上一步</button>
+      <button class="btn btn-primary" id="step3Finish">完成</button>
+    </div>
+  </div>
+
+  <!-- ===== 第 4 步：写配置 + 首次同步 ===== -->
+  <div class="step" id="step4">
+    <div class="center-spinner">
+      <p style="font-weight:600;margin-bottom:16px">正在完成设置…</p>
+      <span class="spinner"></span>
+    </div>
+  </div>
+</div>
+
+<script src="bridge.js"></script>
+<script>
+  const state = { url: "", token: "", courses: [], selectedIds: new Set(), notifyMethod: "none", ntfyTopic: "", discordWebhook: "", shortcutsName: "", rememberMe: true };
+
+  function showStep(n) {
+    document.querySelectorAll(".step").forEach(el => el.classList.remove("active"));
+    document.getElementById("step" + n).classList.add("active");
+  }
+
+  // 第1步：隐私勾选框没勾就不能点下一步（跟 Mac/Windows 原生版逻辑一致）
+  const privacyCheck = document.getElementById("privacyCheck");
+  const step1Next = document.getElementById("step1Next");
+  privacyCheck.addEventListener("change", () => { step1Next.disabled = !privacyCheck.checked; });
+
+  step1Next.addEventListener("click", async () => {
+    const url = document.getElementById("urlInput").value.trim();
+    const token = document.getElementById("tokenInput").value.trim();
+    const errorEl = document.getElementById("step1Error");
+    errorEl.style.display = "none";
+    if (!url || !token) {
+      errorEl.textContent = "网址和 Token 都要填";
+      errorEl.style.display = "block";
+      return;
+    }
+
+    document.getElementById("step1Spinner").style.display = "inline-block";
+    step1Next.disabled = true;
+    try {
+      const courses = await NativeBridge.send("fetchCourses", { baseUrl: url, token });
+      state.url = url;
+      state.token = token;
+      state.rememberMe = document.getElementById("rememberCheck").checked;
+      state.courses = courses;
+      renderCourses();
+      showStep(2);
+    } catch (e) {
+      errorEl.textContent = "连接失败：" + e.message;
+      errorEl.style.display = "block";
+    } finally {
+      document.getElementById("step1Spinner").style.display = "none";
+      step1Next.disabled = !privacyCheck.checked;
+    }
+  });
+
+  // 第2步
+  function renderCourses() {
+    const list = document.getElementById("courseList");
+    list.innerHTML = "";
+    if (state.courses.length === 0) {
+      list.innerHTML = '<p class="hint">没有拉到课程，返回上一步检查一下网址和 Token</p>';
+      return;
+    }
+    for (const c of state.courses) {
+      const label = document.createElement("label");
+      const checked = state.selectedIds.has(c.id) ? "checked" : "";
+      label.innerHTML = `<input type="checkbox" data-id="${c.id}" ${checked}> ${escapeHtml(c.name)}${c.course_code ? " (" + escapeHtml(c.course_code) + ")" : ""}`;
+      list.appendChild(label);
+    }
+  }
+  function captureSelectedCourses() {
+    state.selectedIds = new Set();
+    document.querySelectorAll("#courseList input[type=checkbox]:checked").forEach(cb => {
+      state.selectedIds.add(parseInt(cb.dataset.id, 10));
+    });
+  }
+  document.getElementById("step2Back").addEventListener("click", () => { captureSelectedCourses(); showStep(1); });
+  document.getElementById("step2Next").addEventListener("click", () => { captureSelectedCourses(); showStep(3); });
+
+  // 第3步
+  function updateNotifyDetail(method) {
+    const box = document.getElementById("notifyDetail");
+    if (method === "ntfy") {
+      box.style.display = "block";
+      box.innerHTML = '<p class="hint" style="margin-bottom:8px">手机 App Store 搜索安装「ntfy」，打开后点右下角 ＋，粘贴下面这个频道名订阅它（频道名相当于一个不公开的密钥，不要告诉别人）：</p><input type="text" id="ntfyField" value="' + (state.ntfyTopic || ("canvas-" + Math.floor(100000 + Math.random() * 900000))) + '">';
+    } else if (method === "discord") {
+      box.style.display = "block";
+      box.innerHTML = '<p class="hint" style="margin-bottom:8px">在你的 Discord 服务器里：频道设置 →「整合」→「Webhook」→「新增 Webhook」，复制生成的网址粘贴到下面（不用邀请机器人，纯网址推送）：</p><input type="text" id="discordField" placeholder="https://discord.com/api/webhooks/..." value="' + (state.discordWebhook || "") + '">';
+    } else if (method === "shortcuts") {
+      box.style.display = "block";
+      box.innerHTML = '<p class="hint" style="margin-bottom:8px">在 Mac 的「快捷指令」App 里新建一个快捷指令：加一个「获取输入的文本」动作，再加一个「发送信息」动作（收件人填你自己），给这个快捷指令起个名字，填在下面：</p><input type="text" id="shortcutsField" value="' + (state.shortcutsName || "Canvas提醒") + '">';
+    } else {
+      box.style.display = "none";
+      box.innerHTML = "";
+    }
+  }
+  document.querySelectorAll('input[name="notify"]').forEach(radio => {
+    radio.addEventListener("change", () => updateNotifyDetail(radio.value));
+  });
+  // 苹果快捷指令只在 Mac 上有意义——原生 shell 加载这个页面时会调用 window.__setPlatform("mac"/"windows")
+  window.__setPlatform = function (platform) {
+    if (platform === "mac") document.getElementById("shortcutsOption").style.display = "block";
+  };
+
+  document.getElementById("step3Back").addEventListener("click", () => showStep(2));
+  document.getElementById("step3Finish").addEventListener("click", async () => {
+    state.notifyMethod = document.querySelector('input[name="notify"]:checked').value;
+    if (state.notifyMethod === "ntfy") state.ntfyTopic = document.getElementById("ntfyField").value.trim();
+    if (state.notifyMethod === "discord") state.discordWebhook = document.getElementById("discordField").value.trim();
+    if (state.notifyMethod === "shortcuts") state.shortcutsName = document.getElementById("shortcutsField").value.trim();
+
+    showStep(4);
+    try {
+      await NativeBridge.send("completeSetup", {
+        token: state.token,
+        baseUrl: state.url,
+        notifyMethod: state.notifyMethod,
+        ntfyTopic: state.ntfyTopic,
+        discordWebhook: state.discordWebhook,
+        shortcutsName: state.shortcutsName,
+        courseIds: Array.from(state.selectedIds),
+        rememberMe: state.rememberMe,
+      });
+      // 正常情况下原生 shell 收到 completeSetup 之后会直接关掉这个窗口、切到主窗口，
+      // 走不到这里；万一没切过去（比如首次同步失败但配置已经写好），也不用在这个
+      // 页面报错卡住用户——原生那边有自己的兜底逻辑。
+    } catch (e) {
+      showStep(3);
+      alert("保存配置失败：" + e.message);
+    }
+  });
+
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+</script>
+</body>
+</html>

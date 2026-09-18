@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace CanvasDashboard.Services;
 
@@ -27,6 +28,13 @@ public class PythonRunException : Exception
 /// </summary>
 public static class PythonRunner
 {
+    // 特意不用 Encoding.UTF8 这个静态常量——它自带 BOM 前导字节，StreamWriter 会在
+    // 第一次写入时把 EF BB BF 这三个字节也写进子进程的 stdin。fetch_courses.py /
+    // write_config.py 用的是 json.load(sys.stdin)（文本模式，不认 BOM），一旦带了 BOM，
+    // 每次调用都会在第一个字符上直接报 JSONDecodeError，看起来像"桥接完全不能用"，
+    // 其实只是编码选错了。用不带 BOM 的 UTF8Encoding 构造函数规避这个坑。
+    private static readonly Encoding Utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     public static Task<int> RunAsync(IEnumerable<string> arguments) => RunAsync(arguments, null);
 
     /// <summary>
@@ -111,5 +119,60 @@ public static class PythonRunner
         }
 
         return process.ExitCode;
+    }
+
+    /// <summary>
+    /// 给 fetch_courses.py / write_config.py 这类"从 stdin 读一段 JSON、把结果/错误打到
+    /// stdout/stderr"的脚本用：写一段 JSON 文本到子进程 stdin，捕获 stdout 和 stderr 一起
+    /// 返回（不像 RunAsync 那样只关心退出码）。对应 Mac 版 Bridge.swift 的 runPythonJSON。
+    ///
+    /// 全程 async/await，不涉及 UI 线程同步阻塞等待，调用方（NativeBridge 的
+    /// WebMessageReceived 处理）本身就是 async void，这里放心 await 到底就行。
+    /// </summary>
+    public static async Task<(int ExitCode, string StdOut, string StdErr)> RunJsonRawAsync(
+        IEnumerable<string> arguments, string stdinJson)
+    {
+        var args = arguments.ToArray();
+        var pythonExe = ProjectPaths.PythonExe;
+
+        if (!File.Exists(pythonExe))
+        {
+            throw new InvalidOperationException(
+                $"找不到 Python 虚拟环境（{pythonExe}）。请先在项目目录运行 setup.bat，" +
+                "或者手动执行 python -m venv .venv 然后 .venv\\Scripts\\pip install -r requirements.txt。");
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = pythonExe,
+            WorkingDirectory = ProjectPaths.ProjectRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardInputEncoding = Utf8NoBom,
+            StandardOutputEncoding = Utf8NoBom,
+            StandardErrorEncoding = Utf8NoBom,
+        };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+
+        // 先把读 stdout/stderr 的两个任务挂起来，再写 stdin 关闭它——不要反过来。
+        // 这两个脚本输出量很小（几百字节到几 KB），理论上不会撑爆管道缓冲区，但顺序
+        // 写对了不费事，干脆照着"不会死锁"的写法来，参考 Mac 版的注释。
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+
+        await process.StandardInput.WriteAsync(stdinJson).ConfigureAwait(true);
+        process.StandardInput.Close();
+
+        await process.WaitForExitAsync().ConfigureAwait(true);
+        var stdout = (await stdoutTask.ConfigureAwait(true)).Trim();
+        var stderr = (await stderrTask.ConfigureAwait(true)).Trim();
+
+        return (process.ExitCode, stdout, stderr);
     }
 }

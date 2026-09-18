@@ -51,6 +51,9 @@ public static class ProjectPaths
     public static string DashboardHtml => Path.Combine(ProjectRoot, "dashboard.html");
     public static string MaterialsHtml => Path.Combine(ProjectRoot, "materials.html");
     public static string GradesHtml => Path.Combine(ProjectRoot, "grades.html");
+    // "提醒时间"现在也是网页（schedule.html），跟其它三个板块一样在主窗口同一个 WebView2
+    // 里加载，不再是原生 ScheduleView/AlarmEditorWindow——四个板块完全对称，见 MainWindow。
+    public static string ScheduleHtml => Path.Combine(ProjectRoot, "schedule.html");
 
     public static string LogsDir => Path.Combine(ProjectRoot, "logs");
 }

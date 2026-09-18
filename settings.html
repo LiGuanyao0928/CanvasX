@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">设置</title>
+<link rel="stylesheet" href="app_theme.css">
+<style>
+  body { padding: 24px; max-width: 480px; margin: 0 auto; }
+  .section { margin-bottom: 16px; }
+  .section-label { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+  .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .segmented button { padding: 6px 14px; font-size: 12px; border: none; background: var(--card-bg); color: var(--text); cursor: pointer; border-right: 1px solid var(--border); }
+  .segmented button:last-child { border-right: none; }
+  .segmented button.active { background: var(--accent); color: var(--accent-contrast); }
+  .row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .url-row { font-size: 12px; margin-bottom: 12px; }
+  .url-row .muted { color: var(--muted); }
+  .btn-danger-outline { color: var(--danger); }
+  #syncStatus { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h2 id="titleHeader" style="margin:0 0 20px">设置</h2>
+
+  <div class="section card">
+    <div class="section-label" id="lblAppearance">外观</div>
+    <div class="segmented" id="appearanceSeg">
+      <button data-value="system" id="btnSystem">跟随系统</button>
+      <button data-value="light" id="btnLight">浅色</button>
+      <button data-value="dark" id="btnDark">深色</button>
+    </div>
+  </div>
+
+  <div class="section card">
+    <div class="section-label" id="lblLanguage">语言（仅设置面板文字）</div>
+    <div class="segmented" id="languageSeg">
+      <button data-value="zh" id="btnZh">中文</button>
+      <button data-value="en" id="btnEn">English</button>
+    </div>
+  </div>
+
+  <div class="section card">
+    <div class="section-label" id="lblAccount">账号</div>
+    <div class="url-row"><span class="muted" id="lblCurrentUrl">当前 Canvas 网址：</span><strong id="currentUrl">—</strong></div>
+    <div class="row">
+      <button class="btn" id="btnReconfigure">重新选课 / 更换 Token</button>
+      <button class="btn btn-danger-outline" id="btnLogout">退出登录</button>
+    </div>
+  </div>
+
+  <div class="section card">
+    <div class="section-label" id="lblMore">其他</div>
+    <div class="row">
+      <button class="btn" id="btnSyncNow">立即同步</button>
+      <span class="spinner" id="syncSpinner" style="display:none"></span>
+      <span id="syncStatus"></span>
+    </div>
+    <div class="row">
+      <button class="btn" id="btnOpenLogs">打开日志文件夹</button>
+    </div>
+    <div class="section-label" style="margin-top:16px" id="lblAbout">关于</div>
+    <p class="hint" id="aboutText">Canvas 作业追踪 · 个人项目，完全在本机运行，账号信息和作业数据不会上传到除 Canvas 官方以外的任何服务器。</p>
+  </div>
+
+<script src="bridge.js"></script>
+<script>
+  const STRINGS = {
+    zh: {
+      title: "设置", appearance: "外观", system: "跟随系统", light: "浅色", dark: "深色",
+      language: "语言（仅设置面板文字）", account: "账号", currentUrl: "当前 Canvas 网址：",
+      reconfigure: "重新选课 / 更换 Token", logout: "退出登录", more: "其他",
+      syncNow: "立即同步", syncing: "同步中…", syncDone: "✓ 已同步", openLogs: "打开日志文件夹",
+      about: "关于", aboutText: "Canvas 作业追踪 · 个人项目，完全在本机运行，账号信息和作业数据不会上传到除 Canvas 官方以外的任何服务器。",
+      logoutConfirm: "确定要退出登录吗？会清除这台电脑上保存的 Canvas 账号信息、选课设置和已同步的数据（方便下一个用这台电脑的同学重新开始）。下次打开 App 会重新走一遍设置向导。",
+    },
+    en: {
+      title: "Settings", appearance: "Appearance", system: "System", light: "Light", dark: "Dark",
+      language: "Language (this panel only)", account: "Account", currentUrl: "Current Canvas URL:",
+      reconfigure: "Change Courses / Token", logout: "Log Out", more: "More",
+      syncNow: "Sync Now", syncing: "Syncing…", syncDone: "✓ Synced", openLogs: "Open Logs Folder",
+      about: "About", aboutText: "Canvas Assignment Tracker · A personal project that runs entirely on your machine. Your credentials and assignment data are never uploaded anywhere except Canvas itself.",
+      logoutConfirm: "Log out? This clears the saved Canvas credentials, course selection, and synced data on this computer. You'll go through setup again next time.",
+    },
+  };
+
+  let lang = "zh";
+  let theme = "system";
+
+  function applyStrings() {
+    const t = STRINGS[lang];
+    document.getElementById("pageTitle").textContent = t.title;
+    document.getElementById("titleHeader").textContent = t.title;
+    document.getElementById("lblAppearance").textContent = t.appearance;
+    document.getElementById("btnSystem").textContent = t.system;
+    document.getElementById("btnLight").textContent = t.light;
+    document.getElementById("btnDark").textContent = t.dark;
+    document.getElementById("lblLanguage").textContent = t.language;
+    document.getElementById("lblAccount").textContent = t.account;
+    document.getElementById("lblCurrentUrl").textContent = t.currentUrl;
+    document.getElementById("btnReconfigure").textContent = t.reconfigure;
+    document.getElementById("btnLogout").textContent = t.logout;
+    document.getElementById("lblMore").textContent = t.more;
+    document.getElementById("btnSyncNow").textContent = t.syncNow;
+    document.getElementById("btnOpenLogs").textContent = t.openLogs;
+    document.getElementById("lblAbout").textContent = t.about;
+    document.getElementById("aboutText").textContent = t.aboutText;
+  }
+
+  function highlightSeg(containerId, value) {
+    document.querySelectorAll("#" + containerId + " button").forEach(b => {
+      b.classList.toggle("active", b.dataset.value === value);
+    });
+  }
+
+  document.querySelectorAll("#appearanceSeg button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      theme = btn.dataset.value;
+      highlightSeg("appearanceSeg", theme);
+      document.documentElement.setAttribute("data-theme", theme === "system" ? "" : theme);
+      NativeBridge.send("setPrefs", { theme });
+    });
+  });
+  document.querySelectorAll("#languageSeg button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      lang = btn.dataset.value;
+      highlightSeg("languageSeg", lang);
+      applyStrings();
+      NativeBridge.send("setPrefs", { language: lang });
+    });
+  });
+
+  document.getElementById("btnReconfigure").addEventListener("click", () => {
+    NativeBridge.send("openWizard");
+  });
+
+  document.getElementById("btnLogout").addEventListener("click", () => {
+    if (!confirm(STRINGS[lang].logoutConfirm)) return;
+    NativeBridge.send("logout");
+  });
+
+  document.getElementById("btnSyncNow").addEventListener("click", async () => {
+    const btn = document.getElementById("btnSyncNow");
+    const spinner = document.getElementById("syncSpinner");
+    const status = document.getElementById("syncStatus");
+    btn.disabled = true;
+    spinner.style.display = "inline-block";
+    status.textContent = STRINGS[lang].syncing;
+    try {
+      await NativeBridge.send("syncNow");
+      status.textContent = STRINGS[lang].syncDone;
+    } catch (e) {
+      status.textContent = "❌ " + e.message;
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = "none";
+    }
+  });
+
+  document.getElementById("btnOpenLogs").addEventListener("click", () => {
+    NativeBridge.send("openLogs");
+  });
+
+  async function init() {
+    try {
+      const prefs = await NativeBridge.send("getPrefs");
+      theme = prefs.theme || "system";
+      lang = prefs.language || "zh";
+    } catch (e) { /* 用默认值 */ }
+    highlightSeg("appearanceSeg", theme);
+    highlightSeg("languageSeg", lang);
+    applyStrings();
+
+    try {
+      const env = await NativeBridge.send("getEnv");
+      document.getElementById("currentUrl").textContent = env.CANVAS_BASE_URL || "—";
+    } catch (e) {
+      document.getElementById("currentUrl").textContent = "—";
+    }
+  }
+  init();
+</script>
+</body>
+</html>

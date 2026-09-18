@@ -8,6 +8,7 @@ let projectDir: String = Bundle.main.bundleURL.deletingLastPathComponent().path
 let dashboardPath = projectDir + "/dashboard.html"
 let materialsPath = projectDir + "/materials.html"
 let gradesPath = projectDir + "/grades.html"
+let schedulePath = projectDir + "/schedule.html"
 
 // 检查 .env 里是不是已经填了 Canvas 账号信息——没有的话说明是第一次用，
 // 先走设置向导，不直接进主界面。只做最简单的手动解析，不用引入额外的库。
@@ -27,12 +28,11 @@ func hasValidCanvasConfig() -> Bool {
 class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDelegate {
     var window: NSWindow!
     var webView: WKWebView!
-    var scheduleVC: ScheduleViewController!
     var sidebarVC: SidebarViewController!
     var splitViewController: NSSplitViewController!
     var currentSection = 0
-    var wizardWindowController: SetupWizardWindowController!
-    var settingsWindowController: SettingsWindowController!
+    var wizardWindowController: WebPageWindowController!
+    var settingsWindowController: WebPageWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppearanceMode.applyStartupPreference()
@@ -46,12 +46,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
     }
 
     func showSetupWizard() {
-        wizardWindowController = SetupWizardWindowController()
-        wizardWindowController.onComplete = { [weak self] in
-            self?.showMainWindow()
-        }
+        wizardWindowController = WebPageWindowController(
+            htmlFileName: "setup_wizard.html", title: "欢迎使用 Canvas 作业追踪", width: 480, height: 780)
         wizardWindowController.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // 设置向导网页调用 completeSetup 桥接、Python 那边写完配置+同步完之后回调这里。
+    func finishSetupWizard() {
+        wizardWindowController?.window?.close()
+        wizardWindowController = nil
+        showMainWindow()
     }
 
     func showMainWindow() {
@@ -81,42 +86,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         window.toolbar = NSToolbar(identifier: "MainToolbar")
         window.backgroundColor = .contentBackground
 
-        // 容器view，装作业看板/课程资料/成绩(webView) 和 提醒时间(scheduleVC.view)，切换时只是显隐，不销毁重建
-        // 这个容器交给 NSSplitViewController 用 Auto Layout 布局，不能带非零的初始 frame——
-        // 哪怕关了 translatesAutoresizingMaskIntoConstraints，分屏控制器初次摆放时还是会
-        // 参考这个初始 frame 尺寸，导致整个窗口被撑大、侧边栏的可点击区域跟着错位。
-        let container = DynamicColorLayerView(frame: .zero)
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.wantsLayer = true
-        container.backgroundColorProvider = { .contentBackground }
-
-        // webView / scheduleVC.view 也全部改用 Auto Layout 约束贴边，不用 autoresizingMask——
-        // 混用两套布局系统会导致子视图残留的固定 frame 尺寸反向影响 container 的尺寸计算，
-        // 这正是刚才侧边栏区域被挤丢/窗口尺寸错乱的根源。
+        // "提醒时间"现在也是网页（schedule.html），跟作业看板/资料/成绩一样在同一个
+        // webView 里加载，不用再维护一个原生 ScheduleViewController 跟 webView 并排
+        // 显隐切换——四个板块现在是完全对称的"加载不同网页"，不用特殊分支。
         webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         webView.uiDelegate = self
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
+        NativeBridge.install(on: webView.configuration, bridge: NativeBridge(webView: webView))
+
+        let detailVC = NSViewController()
+        let container = NSView()
+        // 必须显式关掉——这个容器要交给 NSSplitViewController 用 Auto Layout 布局，
+        // 默认的 true 会让系统在背后偷偷生成一套基于 frame 的约束，跟下面手写的
+        // Auto Layout 约束互相打架，NSSplitViewController 摆放它时会直接抛
+        // Auto Layout 异常（这类异常会被 AppKit 的事件循环吞掉、不崩溃但窗口也
+        // 出不来）——这是这个项目踩过的老坑，之前修过一次，这次重构时漏抄了。
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.wantsLayer = true
         container.addSubview(webView)
-
-        scheduleVC = ScheduleViewController()
-        scheduleVC.view.translatesAutoresizingMaskIntoConstraints = false
-        scheduleVC.view.isHidden = true
-        container.addSubview(scheduleVC.view)
-
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: container.topAnchor),
             webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-
-            scheduleVC.view.topAnchor.constraint(equalTo: container.topAnchor),
-            scheduleVC.view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            scheduleVC.view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scheduleVC.view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
-
-        let detailVC = NSViewController()
         detailVC.view = container
 
         sidebarVC = SidebarViewController()
@@ -153,7 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         return true
     }
 
-    // MARK: - 左侧边栏切换：作业看板 / 课程资料 / 成绩 / 提醒时间
+    // MARK: - 左侧边栏切换：作业看板 / 课程资料 / 成绩 / 提醒时间 / 设置
 
     func sectionChanged(_ index: Int) {
         if index == 4 {
@@ -163,18 +157,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
             return
         }
         currentSection = index
-        let showSchedule = index == 3
-        scheduleVC.view.isHidden = !showSchedule
-        webView.isHidden = showSchedule
-        if showSchedule {
-            scheduleVC.reload()
-            return
-        }
         switch index {
         case 1:
             loadPage(materialsPath)
         case 2:
             loadPage(gradesPath)
+        case 3:
+            loadPage(schedulePath)
         default:
             loadPage(dashboardPath)
         }
@@ -190,7 +179,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         webView.loadFileURL(url, allowingReadAccessTo: URL(fileURLWithPath: projectDir))
     }
 
-    func refreshData(completion: @escaping () -> Void = {}) {
+    // 设置面板"立即同步"跑完之后回调这里，把主窗口当前那一页重新加载一遍。
+    func reloadMainWindowCurrentSection() {
+        sectionChanged(currentSection)
+    }
+
+    func refreshData() {
         let task = Process()
         task.currentDirectoryURL = URL(fileURLWithPath: projectDir)
         task.executableURL = URL(fileURLWithPath: projectDir + "/.venv/bin/python3")
@@ -206,7 +200,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         task.terminationHandler = { _ in
             DispatchQueue.main.async {
                 self.sectionChanged(self.currentSection)
-                completion()
             }
         }
 
@@ -214,35 +207,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
             try task.run()
         } catch {
             NSLog("refresh failed to launch: \(error)")
-            DispatchQueue.main.async { completion() }
         }
     }
 
     // MARK: - 设置面板
 
     func showSettings() {
-        settingsWindowController = SettingsWindowController()
-        settingsWindowController.onRerunWizard = { [weak self] in
-            self?.rerunWizardAction()
-        }
-        settingsWindowController.onLogout = { [weak self] in
-            self?.logout()
-        }
-        settingsWindowController.onSyncNow = { [weak self] completion in
-            self?.refreshData(completion: completion)
-        }
+        settingsWindowController = WebPageWindowController(
+            htmlFileName: "settings.html", title: "设置", width: 460, height: 620)
         settingsWindowController.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    // 退出登录：清掉这台电脑上这个人的 Canvas 账号信息和已同步的数据，
-    // 方便下一个用这台电脑的同学从头开始，不会看到上一个人的作业/成绩。
-    // 不清 schedule.json——提醒时间这种本地偏好留着也没什么隐私问题。
-    // 退出登录 和 "不记住我"下的自动清理 都调用同一份共享 Python 脚本
-    // （clear_local_user_data.py）——文件名单只在那一处维护，Mac/Windows
-    // 两个客户端都调用它，不用各自在 Swift/C# 里重复一份、以后加新文件容易漏改一边。
-    // 同步等它跑完（几个小文件，毫秒级），保证调用方后续逻辑执行时文件确实已经没了。
-    func clearLocalUserData() {
+    // 设置面板网页调用 logout 桥接、Python 那边清完文件之后回调这里，负责窗口切换。
+    // 先展示新向导窗口，再关掉旧窗口——顺序不能反过来，中间有一瞬间零窗口存在的话，
+    // 有可能触发 App 提前退出（取决于 ShutdownMode 之类的行为），新向导就弹不出来了。
+    func performLogoutTransition() {
+        settingsWindowController?.window?.close()
+        settingsWindowController = nil
+        showSetupWizard()
+        window?.close()
+        window = nil
+    }
+
+    // "记住我"没勾选（公用电脑场景）：退出 App 时自动清掉这台电脑上刚才写的登录信息，
+    // 不等用户自己记得去点"退出登录"。同步阻塞跑完（几个小文件，毫秒级）——
+    // applicationWillTerminate 返回之后进程就真的退出了，没法排一个异步续体。
+    func clearLocalUserDataSync() {
         let task = Process()
         task.currentDirectoryURL = URL(fileURLWithPath: projectDir)
         task.executableURL = URL(fileURLWithPath: projectDir + "/.venv/bin/python3")
@@ -251,20 +242,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         task.waitUntilExit()
     }
 
-    func logout() {
-        clearLocalUserData()
-        window?.close()
-        window = nil
-        showSetupWizard()
-    }
-
-    // 设置向导里"记住我"没勾选（公用电脑场景）：退出 App 时自动清掉这台电脑上
-    // 刚才写的登录信息，不等用户自己记得去点"退出登录"。没有这个 key（老用户，
-    // 或者还没走过新版向导）时默认当作"记住"处理，不会误清。
     func applicationWillTerminate(_ notification: Notification) {
         let remember = UserDefaults.standard.object(forKey: "rememberLogin") as? Bool ?? true
         if !remember {
-            clearLocalUserData()
+            clearLocalUserDataSync()
         }
     }
 
@@ -283,6 +264,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
 
     // MARK: - 课程资料页里的"添加文件"/"删除文件"按钮，用自定义 URL scheme 从网页调回原生代码
     // （canvasapp://add?course_id=X ，canvasapp://delete?id=X），点击时拦截掉，不真的当链接跳转。
+    // 这个机制比其他页面早、已经跑通很久了，这次重构没有把它也改成 NativeBridge 消息——
+    // 没必要为了统一而统一，能跑的东西不用动。
 
     func webView(
         _ webView: WKWebView,
@@ -358,7 +341,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         }
     }
 
-    // MARK: - 菜单栏（Quit / 刷新数据）
+    // MARK: - 菜单栏
 
     func setupMenu() {
         let mainMenu = NSMenu()
@@ -392,9 +375,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         let refreshItem = NSMenuItem(title: "刷新数据", action: #selector(refreshMenuAction), keyEquivalent: "r")
         refreshItem.target = self
         viewMenu.addItem(refreshItem)
-        let rerunWizardItem = NSMenuItem(title: "重新运行设置向导（换 Token / 改选课）", action: #selector(rerunWizardAction), keyEquivalent: "")
-        rerunWizardItem.target = self
-        viewMenu.addItem(rerunWizardItem)
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
@@ -403,10 +383,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
 
     @objc func refreshMenuAction() {
         refreshData()
-    }
-
-    @objc func rerunWizardAction() {
-        showSetupWizard()
     }
 
     @objc func settingsMenuAction() {

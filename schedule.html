@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>提醒时间</title>
+<link rel="stylesheet" href="app_theme.css">
+<style>
+  body { padding: 32px 40px; max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .alarm-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: var(--card-bg);
+  }
+  .alarm-time { font-size: 20px; font-weight: 600; min-width: 70px; }
+  .alarm-repeat { color: var(--muted); font-size: 12px; flex: 1; }
+  .icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px 8px; color: var(--muted); }
+  .icon-btn:hover { color: var(--danger); }
+  .switch { position: relative; width: 36px; height: 20px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: 0.15s; }
+  .slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: white; border-radius: 50%; transition: 0.15s; }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(16px); }
+  .add-btn { margin-top: 8px; }
+  .editor {
+    margin-top: 16px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg);
+    display: none;
+  }
+  .editor.open { display: block; }
+  .day-picker { display: flex; gap: 6px; margin: 12px 0; }
+  .day-chip {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; user-select: none;
+  }
+  .day-chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  input[type="time"] { font-size: 20px; padding: 8px 12px; width: auto; }
+</style>
+</head>
+<body>
+  <h1>提醒时间</h1>
+  <p class="subtitle">像闹钟一样设置多个自动同步时间点，每条单独开关、可设置只在某几天重复</p>
+
+  <div id="alarmList"></div>
+  <button class="btn add-btn" id="btnAdd">＋ 添加提醒时间</button>
+
+  <div class="editor" id="editor">
+    <input type="time" id="timeInput" value="08:00">
+    <div class="day-picker" id="dayPicker"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn btn-primary" id="btnSave">保存</button>
+      <button class="btn" id="btnCancel">取消</button>
+    </div>
+  </div>
+
+<script src="bridge.js"></script>
+<script>
+  const DAY_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
+  let alarms = [];
+  let editingDays = new Set([0, 1, 2, 3, 4, 5, 6]);
+
+  function repeatText(days) {
+    const sorted = [...new Set(days)].sort((a, b) => a - b);
+    const key = JSON.stringify(sorted);
+    if (sorted.length >= 7) return "每天";
+    if (key === JSON.stringify([1, 2, 3, 4, 5])) return "周一至周五";
+    if (key === JSON.stringify([0, 6])) return "周六、周日";
+    if (sorted.length === 0) return "不重复";
+    return sorted.map(d => "周" + DAY_LABELS[d]).join("、");
+  }
+
+  function render() {
+    const list = document.getElementById("alarmList");
+    list.innerHTML = "";
+    for (const alarm of alarms) {
+      const row = document.createElement("div");
+      row.className = "alarm-row";
+      const time = String(alarm.hour).padStart(2, "0") + ":" + String(alarm.minute).padStart(2, "0");
+      row.innerHTML = `
+        <span class="alarm-time">${time}</span>
+        <span class="alarm-repeat">${repeatText(alarm.days)}</span>
+        <label class="switch"><input type="checkbox" ${alarm.enabled ? "checked" : ""} data-id="${alarm.id}" class="toggle"><span class="slider"></span></label>
+        <button class="icon-btn" data-id="${alarm.id}" title="删除">🗑</button>
+      `;
+      list.appendChild(row);
+    }
+    list.querySelectorAll(".toggle").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const alarm = alarms.find(a => a.id === cb.dataset.id);
+        if (alarm) alarm.enabled = cb.checked;
+        save();
+      });
+    });
+    list.querySelectorAll(".icon-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        alarms = alarms.filter(a => a.id !== btn.dataset.id);
+        render();
+        save();
+      });
+    });
+  }
+
+  function renderDayPicker() {
+    const picker = document.getElementById("dayPicker");
+    picker.innerHTML = "";
+    DAY_LABELS.forEach((label, i) => {
+      const chip = document.createElement("div");
+      chip.className = "day-chip" + (editingDays.has(i) ? " active" : "");
+      chip.textContent = label;
+      chip.addEventListener("click", () => {
+        editingDays.has(i) ? editingDays.delete(i) : editingDays.add(i);
+        renderDayPicker();
+      });
+      picker.appendChild(chip);
+    });
+  }
+
+  document.getElementById("btnAdd").addEventListener("click", () => {
+    editingDays = new Set([0, 1, 2, 3, 4, 5, 6]);
+    document.getElementById("timeInput").value = "08:00";
+    renderDayPicker();
+    document.getElementById("editor").classList.add("open");
+  });
+  document.getElementById("btnCancel").addEventListener("click", () => {
+    document.getElementById("editor").classList.remove("open");
+  });
+  document.getElementById("btnSave").addEventListener("click", () => {
+    const [hour, minute] = document.getElementById("timeInput").value.split(":").map(Number);
+    alarms.push({
+      id: "alarm-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      hour, minute, enabled: true, days: Array.from(editingDays),
+    });
+    document.getElementById("editor").classList.remove("open");
+    render();
+    save();
+  });
+
+  async function save() {
+    try {
+      await NativeBridge.send("saveSchedule", { alarms });
+    } catch (e) {
+      alert("保存提醒时间失败：" + e.message);
+    }
+  }
+
+  async function init() {
+    try {
+      alarms = await NativeBridge.send("getSchedule");
+    } catch (e) {
+      alarms = [{ id: "default", hour: 8, minute: 0, enabled: true, days: [0, 1, 2, 3, 4, 5, 6] }];
+    }
+    render();
+  }
+  init();
+</script>
+</body>
+</html>

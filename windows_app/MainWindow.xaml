@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        xmlns:views="clr-namespace:CanvasDashboard.Views"
         Title="Canvas 作业追踪"
         Height="760" Width="1020" MinHeight="480" MinWidth="720"
         Background="{DynamicResource AppWindowBackgroundBrush}"
@@ -72,10 +71,10 @@
             </DockPanel>
         </Border>
 
-        <!-- 右侧内容区：前三个 tab 用 WebView2 显示对应的静态网页，"提醒时间" 用原生 UserControl -->
+        <!-- 右侧内容区：四个板块（作业看板/课程资料/成绩/提醒时间）现在完全对称，
+             都是同一个 WebView2 里加载不同的静态网页，不再有原生的提醒时间 UserControl。 -->
         <Grid Grid.Column="1" Background="{DynamicResource AppContentBackgroundBrush}">
-            <wv2:WebView2 x:Name="Browser" Visibility="Visible" />
-            <views:ScheduleView x:Name="ScheduleViewControl" Visibility="Collapsed" />
+            <wv2:WebView2 x:Name="Browser" />
         </Grid>
     </Grid>
 </Window>

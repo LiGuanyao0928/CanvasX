@@ -6,12 +6,19 @@ using CanvasDashboard.Views;
 namespace CanvasDashboard;
 
 /// <summary>
-/// 应用入口，对应 Mac 版 main.swift 里 AppDelegate.applicationDidFinishLaunching：
-/// 先确认项目目录能找到、应用主题，再看 .env 是否已经有有效配置——没有就先走设置向导，
-/// 有的话直接进主窗口。
+/// 应用入口 + 窗口流转的中枢，对应 Mac 版 main.swift 里的 AppDelegate。
+///
+/// 设置向导/设置面板现在都是共享网页（WebPageWindow 里加载 setup_wizard.html /
+/// settings.html），"填完表单之后该切到哪个窗口"这类流转逻辑不再由窗口自己的事件
+/// 触发（旧版用的是 SetupWizardWindow.Completed 事件），而是 NativeBridge 处理完
+/// 具体 action 之后直接调用这里的静态方法——跟 Mac 版 Bridge.swift 直接调用全局
+/// `delegate.finishSetupWizard()` / `delegate.performLogoutTransition()` 是同一个思路。
 /// </summary>
 public partial class App : Application
 {
+    private static WebPageWindow? _wizardWindow;
+    private static WebPageWindow? _settingsWindow;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -42,30 +49,78 @@ public partial class App : Application
 
         if (EnvFile.HasValidConfig())
         {
-            var main = new MainWindow();
-            MainWindow = main;
-            main.Show();
+            ShowMainWindow();
         }
         else
         {
-            ShowFreshWizard();
+            ShowSetupWizard();
         }
     }
 
-    /// <summary>
-    /// 展示一个全新的设置向导，完成后创建全新主窗口。
-    /// 供首次启动、以及"退出登录"清空数据后重新引导使用。
-    /// </summary>
-    public static void ShowFreshWizard()
+    // MARK: - 窗口流转（对应 main.swift 里 AppDelegate 的同名方法）
+
+    /// <summary>首次使用、以及"退出登录"/在设置里"重新选课"时，展示设置向导网页窗口。</summary>
+    public static void ShowSetupWizard()
     {
-        var wizard = new SetupWizardWindow();
-        wizard.Completed += () =>
+        _wizardWindow = new WebPageWindow("setup_wizard.html", "欢迎使用 Canvas 作业追踪", 480, 780);
+        _wizardWindow.Show();
+        _wizardWindow.Activate();
+    }
+
+    /// <summary>设置向导网页调用 completeSetup 桥接、Python 写完配置+首次同步跑完之后，
+    /// NativeBridge 回调这里，关掉向导、展示主窗口。</summary>
+    public static void FinishSetupWizard()
+    {
+        _wizardWindow?.Close();
+        _wizardWindow = null;
+        ShowMainWindow();
+    }
+
+    public static void ShowMainWindow()
+    {
+        // 从设置向导第二次回来时（比如用户在设置面板点了"重新选课/更换 Token"）复用已有
+        // 主窗口，只刷新数据，不要重新建一整套 WebView2/侧边栏——跟 Mac 版 showMainWindow()
+        // 开头那个提前 return 分支一样。
+        if (Current.MainWindow is MainWindow existing)
         {
-            var main = new MainWindow();
-            Current.MainWindow = main;
-            main.Show();
-        };
-        wizard.Show();
+            existing.Show();
+            existing.Activate();
+            _ = existing.RefreshDataAsync();
+            return;
+        }
+
+        var main = new MainWindow();
+        Current.MainWindow = main;
+        main.Show();
+    }
+
+    /// <summary>设置面板"立即同步"跑完之后，NativeBridge 回调这里，把主窗口当前那一页重新加载一遍。</summary>
+    public static void ReloadMainWindowCurrentSection()
+    {
+        (Current.MainWindow as MainWindow)?.ReloadCurrentSection();
+    }
+
+    /// <summary>主窗口侧边栏"设置"按钮点击时调用，展示设置面板网页窗口。</summary>
+    public static void ShowSettings(MainWindow owner)
+    {
+        _settingsWindow = new WebPageWindow("settings.html", "设置", 460, 620) { Owner = owner };
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+    }
+
+    /// <summary>
+    /// 设置面板网页调用 logout 桥接、Python 清完文件之后，NativeBridge 回调这里，
+    /// 负责窗口切换。先展示新向导窗口，再关掉旧窗口——顺序不能反过来，中间有一瞬间
+    /// 零窗口存在的话，WPF 默认 ShutdownMode（OnLastWindowClose）会让整个应用提前退出，
+    /// 新向导窗口就再也弹不出来了。
+    /// </summary>
+    public static void PerformLogoutTransition()
+    {
+        _settingsWindow?.Close();
+        _settingsWindow = null;
+        ShowSetupWizard();
+        (Current.MainWindow as MainWindow)?.Close();
+        Current.MainWindow = null;
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
