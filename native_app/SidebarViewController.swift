@@ -56,6 +56,7 @@ class SidebarViewController: NSViewController, NSTableViewDataSource, NSTableVie
         Item(title: "课程资料", icon: "folder"),
         Item(title: "成绩", icon: "chart.bar.fill"),
         Item(title: "提醒时间", icon: "alarm"),
+        Item(title: "设置", icon: "gearshape"),
     ]
 
     var onSelect: ((Int) -> Void)?
@@ -164,5 +165,17 @@ class SidebarViewController: NSViewController, NSTableViewDataSource, NSTableVie
         DispatchQueue.main.async { [weak self] in
             self?.tableView.reloadData()
         }
+    }
+
+    // "设置"那一行点了之后其实不对应一块常驻内容（它弹的是单独的设置窗口），
+    // 点完要把高亮挪回原来那个板块，不然侧边栏会一直停留在"设置"这个不代表
+    // 任何可见内容的选中态上。这里临时摘掉 delegate 再选中，避免又触发一遍
+    // tableViewSelectionDidChange 重新调用 onSelect 引发死循环/多余的页面重载。
+    func selectRowSilently(_ index: Int) {
+        let previousDelegate = tableView.delegate
+        tableView.delegate = nil
+        tableView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+        tableView.delegate = previousDelegate
+        tableView.reloadData()
     }
 }

@@ -14,13 +14,14 @@ class SetupWizardWindowController: NSWindowController {
     private var ntfyTopicValue = ""
     private var discordWebhookValue = ""
     private var shortcutsNameValue = ""
+    private var rememberMeValue = true
 
     private var stepContainer: NSView!
     private var currentStepView: NSView?
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 760),
             styleMask: [.titled],
             backing: .buffered,
             defer: false
@@ -107,27 +108,96 @@ class SetupWizardWindowController: NSWindowController {
     private var step1ErrorLabel: NSTextField!
     private var step1NextButton: NSButton!
     private var step1Spinner: NSProgressIndicator!
+    private var step1HelpLabel: NSTextField!
+    private var privacyCheckbox: NSButton!
+    private var rememberCheckbox: NSButton!
 
+    // 登录页重新设计：图标+居中标题的"登录屏"观感，字段装进一张卡片里，
+    // 不再是跟第2/3步一样的左对齐大段文字——这一步是同学们对这个 App 的
+    // 第一印象，单独给一个更像样的视觉处理。
     private func showStep1() {
-        let title = stepTitle("第 1 步 · 连接你的 Canvas 账号")
+        let icon = NSImageView()
+        icon.image = NSApp.applicationIconImage
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.widthAnchor.constraint(equalToConstant: 60).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 60).isActive = true
+
+        let title = NSTextField(labelWithString: "连接你的 Canvas 账号")
+        title.font = .boldSystemFont(ofSize: 20)
+        title.alignment = .center
+
+        let subtitle = hintLabel("登录一次，之后每天自动帮你追作业、算成绩、整理课程资料")
+        subtitle.alignment = .center
+        subtitle.textColor = .secondaryLabelColor
+        subtitle.preferredMaxLayoutWidth = 360
+
         let hint = hintLabel("在 Canvas 网页里，进入「账户 → 设置」，拉到最下面点「+新建访问令牌」，把生成的 Token 粘贴到下面。网址就是你平时登录 Canvas 用的那个网址（不用带后面的路径）。")
+        hint.preferredMaxLayoutWidth = 340
 
         let urlLabel = fieldLabel("Canvas 网址")
         urlField = NSTextField()
         urlField.placeholderString = "https://yourschool.instructure.com"
         urlField.translatesAutoresizingMaskIntoConstraints = false
-        urlField.widthAnchor.constraint(equalToConstant: 380).isActive = true
+        urlField.widthAnchor.constraint(equalToConstant: 340).isActive = true
         urlField.stringValue = canvasURLValue
 
         let tokenLabel = fieldLabel("Access Token")
         tokenField = NSSecureTextField()
         tokenField.translatesAutoresizingMaskIntoConstraints = false
-        tokenField.widthAnchor.constraint(equalToConstant: 380).isActive = true
+        tokenField.widthAnchor.constraint(equalToConstant: 340).isActive = true
         tokenField.stringValue = canvasTokenValue
 
+        let fieldsStack = NSStackView(views: [hint, urlLabel, urlField, tokenLabel, tokenField])
+        fieldsStack.orientation = .vertical
+        fieldsStack.alignment = .leading
+        fieldsStack.spacing = 8
+        fieldsStack.setCustomSpacing(16, after: hint)
+        let card = makeCard(fieldsStack)
+
+        let helpToggle = NSButton(title: "生成不了 / 找不到 Token？", target: self, action: #selector(toggleTokenHelp))
+        helpToggle.isBordered = false
+        helpToggle.bezelStyle = .inline
+        helpToggle.font = .systemFont(ofSize: 11)
+        helpToggle.contentTintColor = .linkColor
+
+        step1HelpLabel = hintLabel("这通常是学校 Canvas 管理员关掉了学生自主生成 Token 的权限，不是你操作有问题。\n解决办法：找任课老师或学校 IT/教务，请他们在 Canvas 管理后台给你开启「用户\n自主生成访问令牌」的权限。目前没有不需要 Token 就能用的替代方案——Canvas\n官方的应用授权（OAuth）流程需要学校管理员审批，普通学生个人没法自己申请。")
+        step1HelpLabel.preferredMaxLayoutWidth = 340
+        step1HelpLabel.isHidden = true
+
         step1ErrorLabel = hintLabel("")
+        step1ErrorLabel.alignment = .center
         step1ErrorLabel.textColor = .systemRed
         step1ErrorLabel.isHidden = true
+
+        // 隐私/数据使用说明——直接给同学用之前，这个必须让人先看一眼、勾选了才能继续，
+        // 不能藏在某个链接后面。内容跟 README 里的口径一致：本地跑、不上传除 Canvas/
+        // 用户自选推送服务以外的任何服务器。
+        let privacyText = hintLabel("这个 App 完全在你自己电脑上运行：Canvas 网址和 Token 只保存在本机，不会\n上传到 Canvas 官方以外的任何服务器；开启手机推送的话，作业标题会发给你自\n己选的推送服务（ntfy/Discord/快捷指令）。这是同学做的个人小工具，不是学\n校或 Canvas 官方产品。")
+        privacyText.preferredMaxLayoutWidth = 340
+
+        privacyCheckbox = NSButton(checkboxWithTitle: "我已阅读并同意上面的说明", target: self, action: #selector(privacyCheckboxChanged(_:)))
+        privacyCheckbox.font = .systemFont(ofSize: 12)
+
+        let privacyStack = NSStackView(views: [privacyText, privacyCheckbox])
+        privacyStack.orientation = .vertical
+        privacyStack.alignment = .leading
+        privacyStack.spacing = 8
+
+        // "记住我"默认勾选（大多数人是在自己的私人电脑上用）；如果是图书馆/机房这种
+        // 公用电脑，取消勾选后退出 App 会自动清掉这台电脑上的登录信息，不会留给下一个人。
+        rememberCheckbox = NSButton(checkboxWithTitle: "记住我的登录信息（下次自动打开，不用重新输入）", target: nil, action: nil)
+        rememberCheckbox.state = .on
+        rememberCheckbox.font = .systemFont(ofSize: 12)
+
+        let rememberWarning = hintLabel("⚠️ 不是你自己的私人电脑（比如图书馆/机房的公用电脑）？取消勾选——退出\nApp 时会自动清除这台电脑上的登录信息，不会留给下一个用的人看到。")
+        rememberWarning.textColor = .systemOrange
+        rememberWarning.preferredMaxLayoutWidth = 340
+
+        let rememberStack = NSStackView(views: [rememberCheckbox, rememberWarning])
+        rememberStack.orientation = .vertical
+        rememberStack.alignment = .leading
+        rememberStack.spacing = 6
 
         step1Spinner = NSProgressIndicator()
         step1Spinner.style = .spinning
@@ -137,19 +207,31 @@ class SetupWizardWindowController: NSWindowController {
         step1NextButton = NSButton(title: "下一步", target: self, action: #selector(step1NextTapped))
         step1NextButton.bezelStyle = .rounded
         step1NextButton.keyEquivalent = "\r"
+        step1NextButton.isEnabled = false
 
         let bottomRow = NSStackView(views: [step1Spinner, step1NextButton])
         bottomRow.orientation = .horizontal
         bottomRow.spacing = 10
 
-        let stack = NSStackView(views: [title, hint, urlLabel, urlField, tokenLabel, tokenField, step1ErrorLabel, bottomRow])
+        let stack = NSStackView(views: [icon, title, subtitle, card, helpToggle, step1HelpLabel, privacyStack, rememberStack, step1ErrorLabel, bottomRow])
         stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 10
-        stack.setCustomSpacing(20, after: hint)
-        stack.setCustomSpacing(20, after: tokenField)
+        stack.alignment = .centerX
+        stack.spacing = 14
+        stack.setCustomSpacing(4, after: icon)
+        stack.setCustomSpacing(20, after: subtitle)
+        stack.setCustomSpacing(6, after: card)
+        stack.setCustomSpacing(16, after: privacyStack)
+        stack.setCustomSpacing(20, after: rememberStack)
 
         setStepView(wrap(stack))
+    }
+
+    @objc private func toggleTokenHelp() {
+        step1HelpLabel.isHidden.toggle()
+    }
+
+    @objc private func privacyCheckboxChanged(_ sender: NSButton) {
+        step1NextButton.isEnabled = sender.state == .on
     }
 
     @objc private func step1NextTapped() {
@@ -169,11 +251,12 @@ class SetupWizardWindowController: NSWindowController {
             guard let self = self else { return }
             self.step1Spinner.stopAnimation(nil)
             self.step1Spinner.isHidden = true
-            self.step1NextButton.isEnabled = true
+            self.step1NextButton.isEnabled = self.privacyCheckbox.state == .on
             switch result {
             case .success(let courses):
                 self.canvasURLValue = url
                 self.canvasTokenValue = token
+                self.rememberMeValue = self.rememberCheckbox.state == .on
                 self.allCourses = courses
                 self.showStep2()
             case .failure(let error):
@@ -420,6 +503,10 @@ class SetupWizardWindowController: NSWindowController {
         let idsText = selectedCourseIDs.sorted().map(String.init).joined(separator: ", ")
         try? "{\"course_ids\": [\(idsText)]}\n".write(
             toFile: projectDir + "/tracked_courses.json", atomically: true, encoding: .utf8)
+
+        // "记住我"没勾选（公用电脑）：记下这个偏好，AppDelegate 在 App 退出时会读它，
+        // 决定要不要把刚写的这些本机文件自动清掉。
+        UserDefaults.standard.set(rememberMeValue, forKey: "rememberLogin")
 
         let task = Process()
         task.currentDirectoryURL = URL(fileURLWithPath: projectDir)

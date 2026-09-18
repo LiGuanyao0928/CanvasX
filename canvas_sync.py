@@ -32,7 +32,10 @@ from canvas_dashboard import generate as generate_dashboard
 from canvas_search import rebuild_index as rebuild_search_index
 from canvas_grades import generate as generate_grades
 from canvas_materials import sync_materials, generate as generate_materials
-from canvas_calendar import sync_to_calendar
+if sys.platform == "darwin":
+    from canvas_calendar import sync_to_calendar  # 操作系统日历 App
+else:
+    from canvas_ics import sync_to_calendar  # Windows/Linux 没有对应系统日历 API，退而生成 .ics 文件
 from due_date_parser import guess_due_at, guess_due_at_from_syllabus
 
 load_dotenv()

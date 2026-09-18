@@ -1,0 +1,81 @@
+<Window x:Class="CanvasDashboard.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:views="clr-namespace:CanvasDashboard.Views"
+        Title="Canvas 作业追踪"
+        Height="760" Width="1020" MinHeight="480" MinWidth="720"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <Style x:Key="SidebarButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="Margin" Value="8,2" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                               HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource AppSidebarHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarButtonStyle}">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧边栏：作业看板 / 课程资料 / 成绩 / 提醒时间 -->
+        <Border Grid.Column="0" Background="{DynamicResource AppSidebarBackgroundBrush}">
+            <DockPanel LastChildFill="True" Margin="0,16,0,16">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="Canvas 作业追踪" FontSize="15" FontWeight="Bold"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}"
+                               Margin="16,4,16,16" TextWrapping="Wrap" />
+
+                    <Button x:Name="NavDashboardButton" Content="📋  作业看板" Tag="0"
+                            Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
+                    <Button x:Name="NavMaterialsButton" Content="📁  课程资料" Tag="1"
+                            Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
+                    <Button x:Name="NavGradesButton" Content="📊  成绩" Tag="2"
+                            Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
+                    <Button x:Name="NavScheduleButton" Content="⏰  提醒时间" Tag="3"
+                            Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Separator Margin="12,4" />
+                    <Button Content="🔄  刷新数据" Style="{StaticResource IconButtonStyle}" Click="RefreshButton_Click" />
+                    <Button Content="⚙️  设置" Style="{StaticResource IconButtonStyle}" Click="SettingsButton_Click" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 右侧内容区：前三个 tab 用 WebView2 显示对应的静态网页，"提醒时间" 用原生 UserControl -->
+        <Grid Grid.Column="1" Background="{DynamicResource AppContentBackgroundBrush}">
+            <wv2:WebView2 x:Name="Browser" Visibility="Visible" />
+            <views:ScheduleView x:Name="ScheduleViewControl" Visibility="Collapsed" />
+        </Grid>
+    </Grid>
+</Window>

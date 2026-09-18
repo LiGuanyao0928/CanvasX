@@ -32,8 +32,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
     var splitViewController: NSSplitViewController!
     var currentSection = 0
     var wizardWindowController: SetupWizardWindowController!
+    var settingsWindowController: SettingsWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppearanceMode.applyStartupPreference()
         setupMenu()
 
         if !hasValidCanvasConfig() {
@@ -83,10 +85,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         // 这个容器交给 NSSplitViewController 用 Auto Layout 布局，不能带非零的初始 frame——
         // 哪怕关了 translatesAutoresizingMaskIntoConstraints，分屏控制器初次摆放时还是会
         // 参考这个初始 frame 尺寸，导致整个窗口被撑大、侧边栏的可点击区域跟着错位。
-        let container = NSView(frame: .zero)
+        let container = DynamicColorLayerView(frame: .zero)
         container.translatesAutoresizingMaskIntoConstraints = false
         container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.contentBackground.cgColor
+        container.backgroundColorProvider = { .contentBackground }
 
         // webView / scheduleVC.view 也全部改用 Auto Layout 约束贴边，不用 autoresizingMask——
         // 混用两套布局系统会导致子视图残留的固定 frame 尺寸反向影响 container 的尺寸计算，
@@ -154,6 +156,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
     // MARK: - 左侧边栏切换：作业看板 / 课程资料 / 成绩 / 提醒时间
 
     func sectionChanged(_ index: Int) {
+        if index == 4 {
+            // "设置"不是一块常驻内容，点了弹单独的设置窗口，侧边栏高亮退回原来那块。
+            showSettings()
+            sidebarVC.selectRowSilently(currentSection)
+            return
+        }
         currentSection = index
         let showSchedule = index == 3
         scheduleVC.view.isHidden = !showSchedule
@@ -182,7 +190,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         webView.loadFileURL(url, allowingReadAccessTo: URL(fileURLWithPath: projectDir))
     }
 
-    func refreshData() {
+    func refreshData(completion: @escaping () -> Void = {}) {
         let task = Process()
         task.currentDirectoryURL = URL(fileURLWithPath: projectDir)
         task.executableURL = URL(fileURLWithPath: projectDir + "/.venv/bin/python3")
@@ -198,6 +206,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         task.terminationHandler = { _ in
             DispatchQueue.main.async {
                 self.sectionChanged(self.currentSection)
+                completion()
             }
         }
 
@@ -205,6 +214,57 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
             try task.run()
         } catch {
             NSLog("refresh failed to launch: \(error)")
+            DispatchQueue.main.async { completion() }
+        }
+    }
+
+    // MARK: - 设置面板
+
+    func showSettings() {
+        settingsWindowController = SettingsWindowController()
+        settingsWindowController.onRerunWizard = { [weak self] in
+            self?.rerunWizardAction()
+        }
+        settingsWindowController.onLogout = { [weak self] in
+            self?.logout()
+        }
+        settingsWindowController.onSyncNow = { [weak self] completion in
+            self?.refreshData(completion: completion)
+        }
+        settingsWindowController.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // 退出登录：清掉这台电脑上这个人的 Canvas 账号信息和已同步的数据，
+    // 方便下一个用这台电脑的同学从头开始，不会看到上一个人的作业/成绩。
+    // 不清 schedule.json——提醒时间这种本地偏好留着也没什么隐私问题。
+    // 退出登录 和 "不记住我"下的自动清理 共用同一份文件清单——都是为了保证
+    // 下一个用这台电脑的人看不到上一个人的 Canvas 账号信息和已同步数据。
+    func clearLocalUserData() {
+        let filesToRemove = [
+            ".env", "tracked_courses.json", "canvas.db", "canvas.db-journal",
+            "dashboard.html", "materials.html", "grades.html",
+            "calendar_synced_ids.json", "canvas_assignments.ics",
+        ]
+        for name in filesToRemove {
+            try? FileManager.default.removeItem(atPath: projectDir + "/" + name)
+        }
+    }
+
+    func logout() {
+        clearLocalUserData()
+        window?.close()
+        window = nil
+        showSetupWizard()
+    }
+
+    // 设置向导里"记住我"没勾选（公用电脑场景）：退出 App 时自动清掉这台电脑上
+    // 刚才写的登录信息，不等用户自己记得去点"退出登录"。没有这个 key（老用户，
+    // 或者还没走过新版向导）时默认当作"记住"处理，不会误清。
+    func applicationWillTerminate(_ notification: Notification) {
+        let remember = UserDefaults.standard.object(forKey: "rememberLogin") as? Bool ?? true
+        if !remember {
+            clearLocalUserData()
         }
     }
 
@@ -306,6 +366,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         let appMenuItem = NSMenuItem()
         appMenuItem.title = "Canvas Dashboard"
         let appMenu = NSMenu(title: "Canvas Dashboard")
+        let settingsItem = NSMenuItem(title: "设置…", action: #selector(settingsMenuAction), keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "退出 Canvas 作业追踪", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
@@ -313,7 +377,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         let editMenuItem = NSMenuItem()
         editMenuItem.title = "Edit"
         let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
         editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        // 手搓的菜单栏之前漏了这一项——没有菜单项声明 Cmd+V 的 key equivalent，
+        // 输入框里粘贴（比如粘贴 Token 这种长字符串）就完全没反应，看着像"输入不了"。
+        editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
         editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
@@ -339,6 +407,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
 
     @objc func rerunWizardAction() {
         showSetupWizard()
+    }
+
+    @objc func settingsMenuAction() {
+        showSettings()
     }
 }
 

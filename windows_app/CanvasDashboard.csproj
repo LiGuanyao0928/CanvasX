@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Windows 原生客户端（WPF），对齐 native_app/ 里 Mac 版（Swift + AppKit）的功能范围。
+    详见 windows_app/README.md 的构建说明和已知风险点。
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CanvasDashboardWin</AssemblyName>
+    <RootNamespace>CanvasDashboard</RootNamespace>
+
+    <!-- 故意不在这里写死 SelfContained/RuntimeIdentifiers——那些只应该在"发布"时生效
+         （见 build.ps1 里完整的 dotnet publish 命令），写在项目文件里会影响到平时用
+         Visual Studio 按 F5 调试或者跑普通 dotnet build 的体验。 -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 用到的是较早但稳定、长期可用的 SDK 版本号；如果 NuGet 还原时报找不到这个版本，
+         在 Visual Studio 的 NuGet 包管理器里把它升级到当时最新版本即可，不影响代码。 -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+</Project>

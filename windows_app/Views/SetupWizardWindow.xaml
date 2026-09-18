@@ -1,0 +1,135 @@
+<Window x:Class="CanvasDashboard.Views.SetupWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="欢迎使用 Canvas 作业追踪"
+        Width="580" Height="700" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppWindowBackgroundBrush}">
+    <Window.Resources>
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="HintTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="StepTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+        </Style>
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Border Width="500" MaxHeight="660" Padding="36,32"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource AppCardBackgroundBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1"
+                CornerRadius="14">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.18" Color="Black" />
+            </Border.Effect>
+
+            <StackPanel>
+                <!-- 顶部 logo + App 名字，所有步骤共用，营造"登录页"的观感 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <Border Width="48" Height="48" CornerRadius="12" Background="{DynamicResource AppAccentBrush}">
+                        <TextBlock Text="🎓" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                        <TextBlock Text="Canvas 作业追踪" FontSize="16" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppTextPrimaryBrush}" />
+                        <TextBlock Text="首次使用设置向导" FontSize="11" Foreground="{DynamicResource AppTextSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ===================== 第 1 步：连接 Canvas 账号 ===================== -->
+                <StackPanel x:Name="Step1Panel">
+                    <TextBlock Style="{StaticResource StepTitleStyle}" Text="第 1 步 · 连接你的 Canvas 账号" />
+                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,18"
+                               Text="在 Canvas 网页里，进入「账户 → 设置」，拉到最下面点「+新建访问令牌」，把生成的 Token 粘贴到下面。网址就是你平时登录 Canvas 用的那个网址（不用带后面的路径）。" />
+
+                    <TextBlock Style="{StaticResource FieldLabelStyle}" Text="Canvas 网址" />
+                    <TextBox x:Name="UrlBox" />
+
+                    <TextBlock Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,4" Text="Access Token" />
+                    <PasswordBox x:Name="TokenBox" />
+
+                    <Expander Header="生成不了 Token？" Margin="0,14,0,0" FontSize="12"
+                              Foreground="{DynamicResource AppTextPrimaryBrush}">
+                        <TextBlock Style="{StaticResource HintTextStyle}" Margin="4,8,0,0"
+                                   Text="有些学校会在 Canvas 后台关掉学生自己生成 Token 的权限（「设置」页面看不到「新建访问令牌」按钮）。这种情况没有绕过的办法——只能请任课老师或学校 IT 帮忙，在 Canvas 管理后台把「用户自主生成访问令牌」这项权限打开。Canvas 官方也提供 OAuth 应用注册的方式，但那个流程需要学校管理员审批，对个人小工具来说不现实，不建议折腾。" />
+                    </Expander>
+
+                    <TextBlock x:Name="Step1Error" Style="{StaticResource HintTextStyle}" Margin="0,14,0,0"
+                               Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                        <ProgressBar x:Name="Step1Spinner" IsIndeterminate="True" Width="60" Height="4"
+                                     VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed" />
+                        <Button x:Name="Step1NextButton" Content="下一步" Padding="18,8" Click="Step1Next_Click" IsDefault="True" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ===================== 第 2 步：选课程 ===================== -->
+                <StackPanel x:Name="Step2Panel" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource StepTitleStyle}" Text="第 2 步 · 选择要追踪的课程" />
+                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,14"
+                               Text="勾选真正要交作业的课。像「学术诚信培训」「新生导师」这类不是正课的模块不用选——之后随时能在设置里重新选课。" />
+
+                    <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="8" Height="280">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="CoursesPanel" Margin="12,8" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                        <Button Content="上一步" Padding="18,8" Margin="0,0,10,0" Click="Step2Back_Click" />
+                        <Button Content="下一步" Padding="18,8" Click="Step2Next_Click" IsDefault="True" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ===================== 第 3 步：手机推送（可选） ===================== -->
+                <StackPanel x:Name="Step3Panel" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource StepTitleStyle}" Text="第 3 步 · 手机推送提醒（可选）" />
+                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,0,0,14"
+                               Text="不开也可以，随时打开 App 看网页仪表盘一样能看到要交的作业。要开的话选一种方式：" />
+
+                    <RadioButton x:Name="NotifyNoneRadio" GroupName="NotifyMethod" Tag="none" Margin="0,4"
+                                 Content="不需要，只看网页仪表盘" IsChecked="True" Checked="NotifyRadio_Checked" />
+                    <RadioButton x:Name="NotifyNtfyRadio" GroupName="NotifyMethod" Tag="ntfy" Margin="0,4"
+                                 Content="ntfy（推荐）—— 跨平台，手机装个 App 就行" Checked="NotifyRadio_Checked" />
+                    <RadioButton x:Name="NotifyDiscordRadio" GroupName="NotifyMethod" Tag="discord" Margin="0,4"
+                                 Content="Discord —— 发到你自己的 Discord 频道" Checked="NotifyRadio_Checked" />
+
+                    <StackPanel x:Name="NotifyDetailPanel" Margin="0,14,0,0" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                        <Button Content="上一步" Padding="18,8" Margin="0,0,10,0" Click="Step3Back_Click" />
+                        <Button Content="完成" Padding="18,8" Click="Step3Finish_Click" IsDefault="True" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ===================== 第 4 步：写配置 + 首次同步 ===================== -->
+                <StackPanel x:Name="Step4Panel" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,40,0,20">
+                    <TextBlock Text="正在完成设置…" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource AppTextPrimaryBrush}" Margin="0,0,0,16" />
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="6" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

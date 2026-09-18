@@ -1,0 +1,29 @@
+<UserControl x:Class="CanvasDashboard.Views.ScheduleView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource AppContentBackgroundBrush}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="自动同步提醒时间" FontSize="22" FontWeight="Bold"
+                   Foreground="{DynamicResource AppTextPrimaryBrush}" />
+
+        <TextBlock Grid.Row="1" Margin="0,6,0,16" TextWrapping="Wrap"
+                   Foreground="{DynamicResource AppTextSecondaryBrush}"
+                   Text="到点会自动同步 Canvas 数据并推送手机提醒。每条都能单独开关，可以设置只在某几天重复。" />
+
+        <Border Grid.Row="2" BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" CornerRadius="8">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="AlarmsPanel" Margin="4" />
+            </ScrollViewer>
+        </Border>
+
+        <Button Grid.Row="3" x:Name="AddButton" Content="＋ 添加提醒时间" HorizontalAlignment="Left"
+                Margin="0,16,0,0" Padding="16,8" Click="AddButton_Click" />
+    </Grid>
+</UserControl>

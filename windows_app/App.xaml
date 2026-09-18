@@ -1,0 +1,13 @@
+<Application x:Class="CanvasDashboard.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- 默认浅色主题；ThemeManager 会在启动时和用户在设置里切换时
+                     用代码把这个 Light.xaml 换成 Dark.xaml（同一套资源 key）。 -->
+                <ResourceDictionary Source="Themes/Light.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
