@@ -74,13 +74,27 @@
                                    Text="有些学校会在 Canvas 后台关掉学生自己生成 Token 的权限（「设置」页面看不到「新建访问令牌」按钮）。这种情况没有绕过的办法——只能请任课老师或学校 IT 帮忙，在 Canvas 管理后台把「用户自主生成访问令牌」这项权限打开。Canvas 官方也提供 OAuth 应用注册的方式，但那个流程需要学校管理员审批，对个人小工具来说不现实，不建议折腾。" />
                     </Expander>
 
+                    <!-- 数据使用说明——分享给同学用之前，必须先让人看一眼、勾选了才能继续 -->
+                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,16,0,8"
+                               Text="这个 App 完全在你自己电脑上运行：Canvas 网址和 Token 只保存在本机，不会上传到 Canvas 官方以外的任何服务器；开启手机推送的话，作业标题会发给你自己选的推送服务（ntfy/Discord）。这是同学做的个人小工具，不是学校或 Canvas 官方产品。" />
+                    <CheckBox x:Name="PrivacyCheckBox" Content="我已阅读并同意上面的说明"
+                              FontSize="12" Checked="PrivacyOrRemember_Changed" Unchecked="PrivacyOrRemember_Changed" />
+
+                    <!-- "记住我"——默认勾选，公用电脑场景取消勾选后退出 App 自动清本机数据 -->
+                    <CheckBox x:Name="RememberCheckBox" Margin="0,10,0,0" IsChecked="True"
+                              Content="记住我的登录信息（下次自动打开，不用重新输入）" FontSize="12" />
+                    <TextBlock Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"
+                               Foreground="{DynamicResource AppWarningBrush}"
+                               Text="⚠️ 不是你自己的私人电脑（比如图书馆/机房的公用电脑）？取消勾选——退出 App 时会自动清除这台电脑上的登录信息，不会留给下一个用的人看到。" />
+
                     <TextBlock x:Name="Step1Error" Style="{StaticResource HintTextStyle}" Margin="0,14,0,0"
                                Foreground="{DynamicResource AppDangerBrush}" Visibility="Collapsed" />
 
                     <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
                         <ProgressBar x:Name="Step1Spinner" IsIndeterminate="True" Width="60" Height="4"
                                      VerticalAlignment="Center" Margin="0,0,10,0" Visibility="Collapsed" />
-                        <Button x:Name="Step1NextButton" Content="下一步" Padding="18,8" Click="Step1Next_Click" IsDefault="True" />
+                        <Button x:Name="Step1NextButton" Content="下一步" Padding="18,8" Click="Step1Next_Click"
+                                IsDefault="True" IsEnabled="False" />
                     </StackPanel>
                 </StackPanel>
 

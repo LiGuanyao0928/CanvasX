@@ -116,13 +116,6 @@ public partial class SettingsWindow : Window
         wizard.Show();
     }
 
-    private static readonly string[] PerUserFiles =
-    {
-        ".env", "tracked_courses.json", "canvas.db", "canvas.db-journal",
-        "dashboard.html", "materials.html", "grades.html",
-        "calendar_synced_ids.json", "canvas_assignments.ics",
-    };
-
     private void LogoutButton_Click(object sender, RoutedEventArgs e)
     {
         var title = Loc.T("settings.account.logout.confirm.title", _lang);
@@ -131,17 +124,9 @@ public partial class SettingsWindow : Window
             MessageBoxImage.Warning, MessageBoxResult.No);
         if (result != MessageBoxResult.Yes) return;
 
-        foreach (var file in PerUserFiles)
-        {
-            try
-            {
-                File.Delete(Path.Combine(ProjectPaths.ProjectRoot, file));
-            }
-            catch
-            {
-                // 单个文件删不掉（比如被占用）不应该挡住整个退出登录流程
-            }
-        }
+        // 文件名单只在 clear_local_user_data.py 里维护一份，Mac/Windows 两边都调
+        // 用它，不在这里重复写一份容易漏改的清单。
+        PythonRunner.RunSyncBlocking(new[] { "clear_local_user_data.py" });
 
         // 先展示新向导窗口，再关掉旧窗口——顺序不能反过来：Application 默认的
         // ShutdownMode 是 OnLastWindowClose，如果先把设置+主窗口都关掉，中间会有

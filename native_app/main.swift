@@ -238,17 +238,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
     // 退出登录：清掉这台电脑上这个人的 Canvas 账号信息和已同步的数据，
     // 方便下一个用这台电脑的同学从头开始，不会看到上一个人的作业/成绩。
     // 不清 schedule.json——提醒时间这种本地偏好留着也没什么隐私问题。
-    // 退出登录 和 "不记住我"下的自动清理 共用同一份文件清单——都是为了保证
-    // 下一个用这台电脑的人看不到上一个人的 Canvas 账号信息和已同步数据。
+    // 退出登录 和 "不记住我"下的自动清理 都调用同一份共享 Python 脚本
+    // （clear_local_user_data.py）——文件名单只在那一处维护，Mac/Windows
+    // 两个客户端都调用它，不用各自在 Swift/C# 里重复一份、以后加新文件容易漏改一边。
+    // 同步等它跑完（几个小文件，毫秒级），保证调用方后续逻辑执行时文件确实已经没了。
     func clearLocalUserData() {
-        let filesToRemove = [
-            ".env", "tracked_courses.json", "canvas.db", "canvas.db-journal",
-            "dashboard.html", "materials.html", "grades.html",
-            "calendar_synced_ids.json", "canvas_assignments.ics",
-        ]
-        for name in filesToRemove {
-            try? FileManager.default.removeItem(atPath: projectDir + "/" + name)
-        }
+        let task = Process()
+        task.currentDirectoryURL = URL(fileURLWithPath: projectDir)
+        task.executableURL = URL(fileURLWithPath: projectDir + "/.venv/bin/python3")
+        task.arguments = ["clear_local_user_data.py"]
+        try? task.run()
+        task.waitUntilExit()
     }
 
     func logout() {

@@ -30,6 +30,7 @@ public partial class SetupWizardWindow : Window
     private string _discordWebhook = "";
     private TextBox? _ntfyField;
     private TextBox? _discordField;
+    private bool _rememberMe = true;
 
     public SetupWizardWindow()
     {
@@ -37,6 +38,13 @@ public partial class SetupWizardWindow : Window
     }
 
     // MARK: - 第 1 步
+
+    // 隐私说明勾选框——没勾就不能点"下一步"，跟 Mac 版一致。"记住我"不影响
+    // 这个按钮能不能点，只在第 4 步写配置时被读取一次。
+    private void PrivacyOrRemember_Changed(object sender, RoutedEventArgs e)
+    {
+        Step1NextButton.IsEnabled = PrivacyCheckBox.IsChecked == true;
+    }
 
     private async void Step1Next_Click(object sender, RoutedEventArgs e)
     {
@@ -57,6 +65,7 @@ public partial class SetupWizardWindow : Window
             var courses = await CanvasApi.FetchCoursesAsync(url, token);
             _canvasUrl = url;
             _canvasToken = token;
+            _rememberMe = RememberCheckBox.IsChecked == true;
             _allCourses = courses;
             ShowStep2();
         }
@@ -71,7 +80,7 @@ public partial class SetupWizardWindow : Window
         finally
         {
             Step1Spinner.Visibility = Visibility.Collapsed;
-            Step1NextButton.IsEnabled = true;
+            Step1NextButton.IsEnabled = PrivacyCheckBox.IsChecked == true;
         }
     }
 
@@ -236,6 +245,12 @@ public partial class SetupWizardWindow : Window
             File.WriteAllText(
                 Path.Combine(ProjectPaths.ProjectRoot, "tracked_courses.json"),
                 $"{{\"course_ids\": [{idsText}]}}\n");
+
+            // "记住我"没勾选（公用电脑场景）：记下这个偏好，App.xaml.cs 的 OnExit
+            // 会读它，决定退出时要不要自动清掉刚写的这些本机文件。
+            var prefs = PrefsStore.Load();
+            prefs.RememberLogin = _rememberMe;
+            PrefsStore.Save(prefs);
         }
         catch (Exception ex)
         {

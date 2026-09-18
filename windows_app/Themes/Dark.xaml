@@ -14,6 +14,7 @@
 
     <SolidColorBrush x:Key="AppBorderBrush" Color="#FF3A3A3C" />
     <SolidColorBrush x:Key="AppDangerBrush" Color="#FFFF453A" />
+    <SolidColorBrush x:Key="AppWarningBrush" Color="#FFFF9F0A" />
 
     <SolidColorBrush x:Key="AppControlBackgroundBrush" Color="#FF2C2C2E" />
     <SolidColorBrush x:Key="AppSidebarSelectedBrush" Color="#FF32405A" />

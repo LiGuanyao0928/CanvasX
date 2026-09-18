@@ -29,6 +29,41 @@ public static class PythonRunner
 {
     public static Task<int> RunAsync(IEnumerable<string> arguments) => RunAsync(arguments, null);
 
+    /// <summary>
+    /// 纯同步版本，专门给 App.xaml.cs 的 OnExit 这种地方用——退出钩子返回之后进程
+    /// 就真的没了，不能安全地 await 一个还没跑完的续体（RunAsync 内部
+    /// ConfigureAwait(true) 会尝试回到 UI 线程续体，退出时 UI 线程已经在等这个
+    /// 调用本身返回，会死锁）。清几个小文件是毫秒级操作，直接同步阻塞完全够用，
+    /// 加个超时兜底避免 python 卡住时无限期挡住 App 退出。
+    /// </summary>
+    public static int RunSyncBlocking(IEnumerable<string> arguments, int timeoutMs = 5000)
+    {
+        var args = arguments.ToArray();
+        var pythonExe = ProjectPaths.PythonExe;
+        if (!File.Exists(pythonExe)) return -1;
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = pythonExe,
+            WorkingDirectory = ProjectPaths.ProjectRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+
+        try
+        {
+            using var process = Process.Start(psi);
+            if (process == null) return -1;
+            process.WaitForExit(timeoutMs);
+            return process.HasExited ? process.ExitCode : -1;
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
     public static async Task<int> RunAsync(IEnumerable<string> arguments, string? logFilePath)
     {
         var args = arguments.ToArray();

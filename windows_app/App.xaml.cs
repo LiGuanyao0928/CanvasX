@@ -77,4 +77,19 @@ public partial class App : Application
             MessageBoxImage.Error);
         e.Handled = true;
     }
+
+    // 登录页"记住我"没勾选（公用电脑场景）：退出时自动清掉这台电脑上的登录信息，
+    // 不等用户自己记得去点"退出登录"。没有偏好文件（老版本，或者还没走过新版
+    // 向导）时 PrefsStore.Load() 返回的默认值 RememberLogin=true，不会误清。
+    // 用同步阻塞版本的 PythonRunner——OnExit 返回之后进程就真的退出了，
+    // 没法安全地在这里排一个 await 续体。
+    protected override void OnExit(ExitEventArgs e)
+    {
+        var prefs = PrefsStore.Load();
+        if (!prefs.RememberLogin)
+        {
+            PythonRunner.RunSyncBlocking(new[] { "clear_local_user_data.py" });
+        }
+        base.OnExit(e);
+    }
 }
