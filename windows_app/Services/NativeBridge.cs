@@ -231,20 +231,15 @@ public sealed class NativeBridge
             }
 
             case "getTimetable":
-                onSuccess(TimetableStore.LoadBlocksJson());
+                onSuccess(TimetableStore.LoadTimetableJson());
                 return;
 
             case "saveTimetable":
-            {
-                var blocksJson = payload.ValueKind == JsonValueKind.Object
-                    && payload.TryGetProperty("blocks", out var blocksEl)
-                    && blocksEl.ValueKind == JsonValueKind.Array
-                        ? blocksEl.GetRawText()
-                        : "[]";
-                TimetableStore.Save(blocksJson);
+                // payload 本身就是网页那边整个 {termStart, readingWeeks, blocks} 状态对象，
+                // 原样存下来，不用挨个字段解析。
+                TimetableStore.Save(payload.GetRawText());
                 onSuccess("true");
                 return;
-            }
 
             default:
                 onFailure($"未知的桥接调用：{action}");

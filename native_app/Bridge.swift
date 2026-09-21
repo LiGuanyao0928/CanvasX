@@ -164,8 +164,10 @@ class NativeBridge: NSObject, WKScriptMessageHandler {
             completion(.success(TimetableFile.load()))
 
         case "saveTimetable":
-            let blocks = payload["blocks"] as? [[String: Any]] ?? []
-            TimetableFile.save(blocks)
+            // payload 本身就是网页那边整个 {termStart, readingWeeks, blocks} 状态对象，
+            // 原样存下来，不用挨个字段解析——跟 ScheduleFile 那种只关心一个数组不一样，
+            // 课程表这边网页自己维护完整状态，原生这边只是个透传的存储层。
+            TimetableFile.save(payload)
             completion(.success(true))
 
         default:
@@ -285,23 +287,25 @@ enum ScheduleFile {
     }
 }
 
-// 课程表（timetable.json）——星期几/几点/教室是用户自己填的，Canvas 不提供这份数据
-// （教务系统才有），跟 schedule.json 一样原样存取一个 JSON 数组，不用额外的触发脚本
-// （不像提醒时间要驱动 launchd/schtasks，课程表只是给用户自己看，没有后台联动）。
+// 课程表（timetable.json）——星期几/几点/教室/频率（每周/隔周）/阅读周都是用户自己
+// 填的，Canvas 不提供这份数据（教务系统才有）。网页那边（timetable.html）自己维护
+// 完整的 {termStart, readingWeeks, blocks} 状态并计算单双周/阅读周要不要显示课，
+// 原生这边只是个透传的存储层，原样存取整个对象，不用关心里面有哪些字段——
+// 不像提醒时间要在原生这边额外驱动 launchd/schtasks，课程表只是给用户自己看，
+// 没有后台联动。
 enum TimetableFile {
     static var path: String { projectDir + "/timetable.json" }
 
-    static func load() -> [[String: Any]] {
+    static func load() -> [String: Any] {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let blocks = json["blocks"] as? [[String: Any]] else {
-            return []
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return ["termStart": NSNull(), "readingWeeks": [], "blocks": []]
         }
-        return blocks
+        return json
     }
 
-    static func save(_ blocks: [[String: Any]]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: ["blocks": blocks], options: [.prettyPrinted]) else { return }
+    static func save(_ timetable: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: timetable, options: [.prettyPrinted]) else { return }
         try? data.write(to: URL(fileURLWithPath: path))
     }
 }

@@ -9,8 +9,26 @@
   body { padding: 24px 32px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-  .warning-note { font-size: 12px; color: var(--warning); margin-bottom: 16px; }
-  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+  .warning-note { font-size: 12px; color: var(--warning); margin-bottom: 12px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+  .week-nav { display: flex; align-items: center; gap: 10px; }
+  .week-nav .week-label { font-size: 14px; font-weight: 600; min-width: 220px; }
+  .week-nav .week-sub { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .toolbar-buttons { display: flex; gap: 8px; }
+
+  .reading-week-banner {
+    display: none;
+    padding: 14px 18px; margin-bottom: 12px; border-radius: 10px;
+    background: var(--warning); color: #1a1200; font-size: 13px; font-weight: 600;
+  }
+  .reading-week-banner.show { display: block; }
+
+  .term-hint {
+    display: none;
+    padding: 12px 16px; margin-bottom: 12px; border-radius: 10px;
+    border: 1px dashed var(--border); font-size: 12px; color: var(--muted);
+  }
+  .term-hint.show { display: block; }
 
   .grid-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
   .grid {
@@ -26,20 +44,14 @@
     border-bottom: 1px solid var(--border);
     border-left: 1px solid var(--border);
     background: var(--card-bg);
-    position: sticky;
-    top: 0;
   }
+  .grid-header .date-sub { display: block; font-weight: 400; color: var(--muted); font-size: 10px; margin-top: 2px; }
   .grid-header.corner { border-left: none; background: var(--bg); }
-  .time-col {
-    position: relative;
-    border-left: none;
-  }
+  .grid-header.today { color: var(--accent); }
+  .time-col { position: relative; border-left: none; }
   .time-label {
-    position: absolute;
-    right: 6px;
-    transform: translateY(-50%);
-    font-size: 11px;
-    color: var(--muted);
+    position: absolute; right: 6px; transform: translateY(-50%);
+    font-size: 11px; color: var(--muted);
   }
   .day-col {
     position: relative;
@@ -59,35 +71,46 @@
   }
   .block .course-name { font-weight: 600; display: block; }
   .block .meta { opacity: 0.85; }
+  .block .freq-tag { opacity: 0.85; }
 
   .editor-backdrop {
     display: none;
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.35);
     align-items: center; justify-content: center;
+    overflow-y: auto;
   }
   .editor-backdrop.open { display: flex; }
   .editor {
-    width: 360px;
+    width: 380px;
     background: var(--card-bg);
     border-radius: 14px;
     padding: 22px;
     border: 1px solid var(--border);
+    margin: 24px 0;
   }
   .editor h2 { font-size: 15px; margin: 0 0 14px; }
   .editor .field { margin-bottom: 12px; }
-  .day-picker-row { display: flex; gap: 6px; flex-wrap: wrap; }
-  .day-chip {
+  .day-picker-row, .choice-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .day-chip, .choice-chip {
     padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
     font-size: 12px; cursor: pointer; user-select: none;
   }
-  .day-chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .day-chip.active, .choice-chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .choice-chip.disabled { opacity: 0.4; cursor: not-allowed; }
   .time-row { display: flex; gap: 10px; align-items: center; }
   .editor-buttons { display: flex; justify-content: space-between; margin-top: 18px; }
   select {
     width: 100%; padding: 9px 12px; font-size: 13px; border: 1px solid var(--border);
     border-radius: 8px; background: var(--bg); color: var(--text);
   }
+  .reading-week-list { margin: 8px 0; }
+  .reading-week-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; font-size: 12px;
+  }
+  .reading-week-item button { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; }
+  .add-reading-week-row { display: flex; gap: 8px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -95,14 +118,30 @@
   <p class="subtitle">星期几、几点到几点、教室都是你自己填的——这些信息本来就在教务系统的选课页面里，不在 Canvas 上，Canvas 只提供课程名字。</p>
   <p class="warning-note">⚠️ 每学期/每次选课变动后记得自己更新，这里不会自动跟着教务系统变。</p>
 
-  <div class="toolbar">
-    <button class="btn btn-primary" id="btnAdd">＋ 添加课程时间</button>
+  <div class="term-hint" id="termHint">
+    还没设置学期开始日期——先点右上角"学期设置"填一下，不然隔周课程和阅读周没法正确显示（每周都会当成普通一周处理）。
   </div>
+
+  <div class="toolbar">
+    <div class="week-nav">
+      <button class="btn" id="btnPrevWeek">‹ 上一周</button>
+      <button class="btn" id="btnThisWeek">本周</button>
+      <button class="btn" id="btnNextWeek">下一周 ›</button>
+      <span class="week-label" id="weekLabel"></span>
+    </div>
+    <div class="toolbar-buttons">
+      <button class="btn" id="btnTermSettings">学期设置</button>
+      <button class="btn btn-primary" id="btnAdd">＋ 添加课程时间</button>
+    </div>
+  </div>
+
+  <div class="reading-week-banner" id="readingWeekBanner">📖 这一周是阅读周，没有课。</div>
 
   <div class="grid-wrap">
     <div class="grid" id="grid"></div>
   </div>
 
+  <!-- ============ 添加/编辑课程时间 ============ -->
   <div class="editor-backdrop" id="editorBackdrop">
     <div class="editor">
       <h2 id="editorTitle">添加课程时间</h2>
@@ -126,6 +165,21 @@
         <label class="field-label">教室（可选）</label>
         <input type="text" id="locationInput" placeholder="比如 ERC 1030">
       </div>
+      <div class="field">
+        <label class="field-label">频率</label>
+        <div class="choice-row" id="freqPicker">
+          <div class="choice-chip active" data-freq="weekly">每周</div>
+          <div class="choice-chip" data-freq="biweekly">隔周</div>
+        </div>
+      </div>
+      <div class="field" id="parityField" style="display:none">
+        <label class="field-label">隔周的哪一周有课</label>
+        <div class="choice-row" id="parityPicker">
+          <div class="choice-chip" data-parity="this">跟当前查看的这周同一批（<span id="parityThisLabel"></span>）</div>
+          <div class="choice-chip" data-parity="other">跟下一周同一批（<span id="parityOtherLabel"></span>）</div>
+        </div>
+        <p class="hint" style="margin-top:6px">选完可以翻页到下下周确认一下日期对不对。</p>
+      </div>
       <div class="editor-buttons">
         <button class="btn btn-danger" id="btnDelete" style="display:none">删除</button>
         <div style="flex:1"></div>
@@ -135,17 +189,99 @@
     </div>
   </div>
 
+  <!-- ============ 学期设置 ============ -->
+  <div class="editor-backdrop" id="termBackdrop">
+    <div class="editor">
+      <h2>学期设置</h2>
+      <div class="field">
+        <label class="field-label">学期第 1 周的周一是哪天</label>
+        <input type="date" id="termStartInput">
+        <p class="hint" style="margin-top:6px">用来算隔周课程的单双周、以及第几周——照抄学校教务系统写的"第1周"那天的周一就行。</p>
+      </div>
+      <div class="field">
+        <label class="field-label">阅读周 / 假期周（整周没课）</label>
+        <div class="reading-week-list" id="readingWeekList"></div>
+        <div class="add-reading-week-row">
+          <input type="date" id="newReadingWeekInput">
+          <button class="btn" id="btnAddReadingWeek">+ 添加</button>
+        </div>
+      </div>
+      <div class="editor-buttons">
+        <div style="flex:1"></div>
+        <button class="btn" id="btnTermCancel">取消</button>
+        <button class="btn btn-primary" id="btnTermSave" style="margin-left:8px">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script src="bridge.js"></script>
 <script>
-  const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // 周一到周日，内部存储仍是 0=周日...6=周六
+  const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // 周一到周日显示，内部存储仍是 0=周日...6=周六
   const DAY_LABELS = { 0: "周日", 1: "周一", 2: "周二", 3: "周三", 4: "周四", 5: "周五", 6: "周六" };
   const START_HOUR = 7, END_HOUR = 22, PX_PER_HOUR = 52;
   const PALETTE = ["#4f7cff", "#e0623d", "#2fa774", "#a259c9", "#d99a26", "#3aa0b0", "#c94f7c"];
 
-  let blocks = [];
+  let state = { termStart: null, readingWeeks: [], blocks: [] };
   let courses = [];
   let editingId = null;
+  let editingDay = 1;
+  let editingFreq = "weekly";
+  let editingParity = null; // "odd" | "even"
+  let viewingMonday = mondayOf(new Date());
+  let pendingReadingWeeks = [];
 
+  // ---------- 日期工具 ----------
+  function parseDate(s) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function formatDate(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function formatDateShort(d) {
+    return (d.getMonth() + 1) + "月" + d.getDate() + "日";
+  }
+  function mondayOf(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  function addDays(date, n) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+  function sameDate(a, b) { return formatDate(a) === formatDate(b); }
+  function weekNumberFor(monday) {
+    if (!state.termStart) return null;
+    const diffDays = Math.round((monday - parseDate(state.termStart)) / 86400000);
+    return Math.floor(diffDays / 7) + 1;
+  }
+  function parityFor(monday) {
+    const wn = weekNumberFor(monday);
+    if (wn === null) return null;
+    return wn % 2 === 1 ? "odd" : "even";
+  }
+  function isReadingWeek(monday) {
+    return state.readingWeeks.includes(formatDate(monday));
+  }
+
+  // ---------- 顶部周导航 ----------
+  function renderWeekNav() {
+    const sunday = addDays(viewingMonday, 6);
+    const wn = weekNumberFor(viewingMonday);
+    let label = formatDateShort(viewingMonday) + " – " + formatDateShort(sunday);
+    if (wn !== null) label += `<span class="week-sub">第 ${wn} 周${wn < 1 ? "（学期还没开始）" : ""}</span>`;
+    document.getElementById("weekLabel").innerHTML = label;
+
+    document.getElementById("termHint").classList.toggle("show", !state.termStart);
+    document.getElementById("readingWeekBanner").classList.toggle("show", isReadingWeek(viewingMonday));
+  }
+
+  // ---------- 课程 ----------
   function courseColor(courseId) {
     const idx = courses.findIndex(c => c.id === courseId);
     return PALETTE[(idx < 0 ? 0 : idx) % PALETTE.length];
@@ -162,15 +298,39 @@
     return ((mins - START_HOUR * 60) / 60) * PX_PER_HOUR;
   }
 
+  function blockAppliesThisWeek(block) {
+    if (isReadingWeek(viewingMonday)) return false;
+    if (block.frequency !== "biweekly") return true;
+    const p = parityFor(viewingMonday);
+    if (p === null) return true; // 没设学期开始日期，没法算单双周，先都显示
+    return block.weekParity === p;
+  }
+
+  function el(tag, className, text) {
+    const e = document.createElement(tag);
+    e.className = className;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
   function renderGrid() {
+    renderWeekNav();
     const grid = document.getElementById("grid");
     grid.innerHTML = "";
     const totalHeight = (END_HOUR - START_HOUR) * PX_PER_HOUR;
+    const reading = isReadingWeek(viewingMonday);
 
     grid.appendChild(el("div", "grid-header corner"));
-    for (const day of DAY_ORDER) {
-      grid.appendChild(el("div", "grid-header", DAY_LABELS[day]));
-    }
+    const todayStr = formatDate(new Date());
+    DAY_ORDER.forEach((day, i) => {
+      const date = addDays(viewingMonday, i);
+      const header = el("div", "grid-header" + (formatDate(date) === todayStr ? " today" : ""));
+      header.innerHTML = `${DAY_LABELS[day]}<span class="date-sub">${formatDateShort(date)}</span>`;
+      grid.appendChild(header);
+    });
 
     const timeCol = el("div", "time-col");
     timeCol.style.height = totalHeight + "px";
@@ -185,31 +345,29 @@
       const col = el("div", "day-col");
       col.style.height = totalHeight + "px";
       col.style.backgroundSize = `100% ${PX_PER_HOUR}px`;
-      for (const block of blocks.filter(b => b.day === day)) {
-        const top = minutesToTop(timeToMinutes(block.startTime));
-        const height = Math.max(24, minutesToTop(timeToMinutes(block.endTime)) - top);
-        const div = el("div", "block");
-        div.style.top = top + "px";
-        div.style.height = height + "px";
-        div.style.background = courseColor(block.courseId);
-        div.innerHTML = `<span class="course-name">${escapeHtml(courseName(block.courseId))}</span><span class="meta">${block.startTime}-${block.endTime}${block.location ? " · " + escapeHtml(block.location) : ""}</span>`;
-        div.addEventListener("click", () => openEditor(block));
-        col.appendChild(div);
+      if (!reading) {
+        for (const block of state.blocks.filter(b => b.day === day && blockAppliesThisWeek(b))) {
+          const top = minutesToTop(timeToMinutes(block.startTime));
+          const height = Math.max(24, minutesToTop(timeToMinutes(block.endTime)) - top);
+          const div = el("div", "block");
+          div.style.top = top + "px";
+          div.style.height = height + "px";
+          div.style.background = courseColor(block.courseId);
+          const freqTag = block.frequency === "biweekly" ? " · 隔周" : "";
+          div.innerHTML = `<span class="course-name">${escapeHtml(courseName(block.courseId))}</span><span class="meta">${block.startTime}-${block.endTime}${block.location ? " · " + escapeHtml(block.location) : ""}${freqTag}</span>`;
+          div.addEventListener("click", () => openEditor(block));
+          col.appendChild(div);
+        }
       }
       grid.appendChild(col);
     }
   }
 
-  function el(tag, className, text) {
-    const e = document.createElement(tag);
-    e.className = className;
-    if (text !== undefined) e.textContent = text;
-    return e;
-  }
-  function escapeHtml(s) {
-    return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
+  document.getElementById("btnPrevWeek").addEventListener("click", () => { viewingMonday = addDays(viewingMonday, -7); renderGrid(); });
+  document.getElementById("btnNextWeek").addEventListener("click", () => { viewingMonday = addDays(viewingMonday, 7); renderGrid(); });
+  document.getElementById("btnThisWeek").addEventListener("click", () => { viewingMonday = mondayOf(new Date()); renderGrid(); });
 
+  // ---------- 添加/编辑课程时间的弹窗 ----------
   function populateCourseSelect() {
     const select = document.getElementById("courseSelect");
     select.innerHTML = "";
@@ -221,7 +379,6 @@
     }
   }
 
-  let editingDay = 1;
   function renderDayPicker() {
     const picker = document.getElementById("dayPicker");
     picker.innerHTML = "";
@@ -232,12 +389,42 @@
     }
   }
 
+  function renderFreqPicker() {
+    document.querySelectorAll("#freqPicker .choice-chip").forEach(chip => {
+      chip.classList.toggle("active", chip.dataset.freq === editingFreq);
+    });
+    const parityKnown = weekNumberFor(viewingMonday) !== null;
+    document.getElementById("parityField").style.display = (editingFreq === "biweekly") ? "block" : "none";
+    if (editingFreq === "biweekly") {
+      const thisParity = parityFor(viewingMonday);
+      const otherParity = thisParity === "odd" ? "even" : "odd";
+      const thisWeekDate = formatDateShort(viewingMonday);
+      const otherWeekDate = formatDateShort(addDays(viewingMonday, 7));
+      document.getElementById("parityThisLabel").textContent = parityKnown ? `比如本周 ${thisWeekDate}` : "学期开始日期未设置";
+      document.getElementById("parityOtherLabel").textContent = parityKnown ? `比如下周 ${otherWeekDate}` : "学期开始日期未设置";
+      if (editingParity === null) editingParity = thisParity;
+      document.querySelectorAll("#parityPicker .choice-chip").forEach(chip => {
+        const chipParity = chip.dataset.parity === "this" ? thisParity : otherParity;
+        chip.classList.toggle("active", chipParity === editingParity);
+        chip.classList.toggle("disabled", !parityKnown);
+        chip.onclick = parityKnown ? () => { editingParity = chipParity; renderFreqPicker(); } : null;
+      });
+    }
+  }
+
+  document.querySelectorAll("#freqPicker .choice-chip").forEach(chip => {
+    chip.addEventListener("click", () => { editingFreq = chip.dataset.freq; editingParity = null; renderFreqPicker(); });
+  });
+
   function openEditor(block) {
     editingId = block ? block.id : null;
     document.getElementById("editorTitle").textContent = block ? "编辑课程时间" : "添加课程时间";
     document.getElementById("btnDelete").style.display = block ? "inline-flex" : "none";
     editingDay = block ? block.day : 1;
+    editingFreq = block ? (block.frequency || "weekly") : "weekly";
+    editingParity = block ? (block.weekParity || null) : null;
     renderDayPicker();
+    renderFreqPicker();
     document.getElementById("startTimeInput").value = block ? block.startTime : "09:00";
     document.getElementById("endTimeInput").value = block ? block.endTime : "10:20";
     document.getElementById("locationInput").value = block ? (block.location || "") : "";
@@ -263,14 +450,20 @@
       alert("结束时间要晚于开始时间");
       return;
     }
+    if (editingFreq === "biweekly" && weekNumberFor(viewingMonday) === null) {
+      alert("隔周课程要先在「学期设置」里填学期开始日期，才能正确算单双周");
+      return;
+    }
+    const data = {
+      courseId, day: editingDay, startTime, endTime, location,
+      frequency: editingFreq,
+      weekParity: editingFreq === "biweekly" ? editingParity : null,
+    };
     if (editingId) {
-      const b = blocks.find(b => b.id === editingId);
-      Object.assign(b, { courseId, day: editingDay, startTime, endTime, location });
+      const b = state.blocks.find(b => b.id === editingId);
+      Object.assign(b, data);
     } else {
-      blocks.push({
-        id: "block-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-        courseId, day: editingDay, startTime, endTime, location,
-      });
+      state.blocks.push(Object.assign({ id: "block-" + Date.now() + "-" + Math.floor(Math.random() * 1000) }, data));
     }
     closeEditor();
     renderGrid();
@@ -278,15 +471,69 @@
   });
 
   document.getElementById("btnDelete").addEventListener("click", () => {
-    blocks = blocks.filter(b => b.id !== editingId);
+    state.blocks = state.blocks.filter(b => b.id !== editingId);
     closeEditor();
     renderGrid();
     save();
   });
 
+  // ---------- 学期设置弹窗 ----------
+  function openTermSettings() {
+    document.getElementById("termStartInput").value = state.termStart || "";
+    pendingReadingWeeks = [...state.readingWeeks];
+    renderReadingWeekList();
+    document.getElementById("termBackdrop").classList.add("open");
+  }
+  function renderReadingWeekList() {
+    const list = document.getElementById("readingWeekList");
+    list.innerHTML = "";
+    if (pendingReadingWeeks.length === 0) {
+      list.appendChild(el("p", "hint", "还没加阅读周——如果学期中间有一整周没课，在下面加上那一周周一的日期。"));
+    }
+    for (const rw of pendingReadingWeeks) {
+      const item = el("div", "reading-week-item");
+      const dateObj = parseDate(rw);
+      const label = el("span", "", `${rw}（那一周：${formatDateShort(dateObj)} – ${formatDateShort(addDays(dateObj, 6))}）`);
+      const btn = document.createElement("button");
+      btn.textContent = "删除";
+      btn.addEventListener("click", () => {
+        pendingReadingWeeks = pendingReadingWeeks.filter(x => x !== rw);
+        renderReadingWeekList();
+      });
+      item.appendChild(label);
+      item.appendChild(btn);
+      list.appendChild(item);
+    }
+  }
+  document.getElementById("btnAddReadingWeek").addEventListener("click", () => {
+    const val = document.getElementById("newReadingWeekInput").value;
+    if (!val) return;
+    const monday = formatDate(mondayOf(parseDate(val)));
+    if (!pendingReadingWeeks.includes(monday)) pendingReadingWeeks.push(monday);
+    pendingReadingWeeks.sort();
+    document.getElementById("newReadingWeekInput").value = "";
+    renderReadingWeekList();
+  });
+  document.getElementById("btnTermSettings").addEventListener("click", openTermSettings);
+  document.getElementById("btnTermCancel").addEventListener("click", () => {
+    document.getElementById("termBackdrop").classList.remove("open");
+  });
+  document.getElementById("termBackdrop").addEventListener("click", (e) => {
+    if (e.target.id === "termBackdrop") document.getElementById("termBackdrop").classList.remove("open");
+  });
+  document.getElementById("btnTermSave").addEventListener("click", () => {
+    const val = document.getElementById("termStartInput").value;
+    state.termStart = val ? formatDate(mondayOf(parseDate(val))) : null;
+    state.readingWeeks = [...pendingReadingWeeks];
+    document.getElementById("termBackdrop").classList.remove("open");
+    renderGrid();
+    save();
+  });
+
+  // ---------- 桥接 ----------
   async function save() {
     try {
-      await NativeBridge.send("saveTimetable", { blocks });
+      await NativeBridge.send("saveTimetable", state);
     } catch (e) {
       alert("保存课程表失败：" + e.message);
     }
@@ -300,9 +547,10 @@
     }
     populateCourseSelect();
     try {
-      blocks = await NativeBridge.send("getTimetable");
+      const loaded = await NativeBridge.send("getTimetable");
+      state = Object.assign({ termStart: null, readingWeeks: [], blocks: [] }, loaded);
     } catch (e) {
-      blocks = [];
+      state = { termStart: null, readingWeeks: [], blocks: [] };
     }
     renderGrid();
   }
