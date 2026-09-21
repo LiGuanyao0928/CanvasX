@@ -15,6 +15,10 @@ Canvas 没写清楚的截止日期，推送手机提醒，还能同步进日历�
   分，总成绩会变成多少"
 - **提醒时间**：像苹果闹钟一样设置多个自动同步时间点，每条单独开关、可
   设置只在某几天重复
+- **课程表**：手动录入一次每门课的星期几/几点/教室，支持隔周课（单周/双周）
+  和阅读周（整周不显示课），按周切换视图会显示实际日期和第几周，课程名字
+  对接本机已同步的真实 Canvas 课程——因为 Canvas 本身不提供可靠的课表数据
+  （详见 [`PARITY.md`](PARITY.md)），这块必须手动填一次才能保证零差错
 - **手机推送**：ntfy / Discord / 苹果快捷指令（Windows 上是 ntfy / Discord），
   可以不用
 - **日历同步**：Mac 自动同步进系统"日历"App；Windows/Linux 生成一份标准
@@ -30,7 +34,7 @@ Canvas 没写清楚的截止日期，推送手机提醒，还能同步进日历�
 和 Python 3。
 
 ```bash
-git clone <这个仓库的地址>
+git clone https://github.com/LiGuanyao0928/canvas-project.git
 cd canvas-project
 ./setup.sh
 ```
@@ -48,7 +52,7 @@ cd canvas-project
 Edge 浏览器装的），一般不用额外装。
 
 ```bat
-git clone <这个仓库的地址>
+git clone https://github.com/LiGuanyao0928/canvas-project.git
 cd canvas-project
 setup.bat
 ```
@@ -65,7 +69,7 @@ Linux 上还没有独立窗口的原生客户端（这边没有能实际测试�
 推送/日历导出功能都在），网页仪表盘用浏览器打开，定时靠 cron。
 
 ```bash
-git clone <这个仓库的地址>
+git clone https://github.com/LiGuanyao0928/canvas-project.git
 cd canvas-project
 ./setup_linux.sh
 ```
@@ -107,9 +111,24 @@ update_schedule.py          定时任务：macOS launchd
 update_schedule_windows.py  定时任务：Windows 任务计划程序
 update_schedule_linux.py    定时任务：Linux crontab
 list_courses.py             查本地已同步的课程 id（Linux 手动配置用）
+fetch_courses.py            设置向导用：拉取 Canvas 课程列表
+write_config.py             设置向导用：写 .env / tracked_courses.json
+list_tracked_courses.py     课程表用：读本机已同步的课程名字
+clear_local_user_data.py    退出登录 / 公用电脑场景：清本机账号数据
+
+setup_wizard.html           设置向导（Mac/Windows 共用网页）
+settings.html               设置面板（Mac/Windows 共用网页）
+schedule.html               提醒时间编辑器（Mac/Windows 共用网页）
+timetable.html              课程表（Mac/Windows 共用网页）
+app_theme.css               共用样式（含浅色/深色主题变量）
+bridge.js                   网页 <-> 原生代码的桥接客户端
+
 native_app/                 macOS 原生 App 源码（Swift + AppKit）
 windows_app/                Windows 原生 App 源码（C# + WPF）
+PARITY.md                   三端（Mac/Windows/Linux）界面功能对齐清单
+
 tracked_courses.json        你选的要追踪的课程（设置向导生成，不提交到仓库）
+timetable.json              你填的课程表（不提交到仓库）
 .env                        你的账号信息（设置向导生成，不提交到仓库）
 ```
 
