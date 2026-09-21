@@ -68,13 +68,14 @@ public partial class MainWindow : Window
         _currentSection = index;
         UpdateSidebarSelection(index);
 
-        // 四个板块现在完全对称——都是"加载不同的静态网页"，"提醒时间"不再是原生
-        // UserControl，跟 Mac 版 sectionChanged(_:) 的 switch 语句一一对应。
+        // 五个板块现在完全对称——都是"加载不同的静态网页"，跟 Mac 版
+        // sectionChanged(_:) 的 switch 语句一一对应。
         var path = index switch
         {
             1 => ProjectPaths.MaterialsHtml,
             2 => ProjectPaths.GradesHtml,
-            3 => ProjectPaths.ScheduleHtml,
+            3 => ProjectPaths.TimetableHtml,
+            4 => ProjectPaths.ScheduleHtml,
             _ => ProjectPaths.DashboardHtml,
         };
         LoadPage(path);
@@ -83,7 +84,7 @@ public partial class MainWindow : Window
     /// <summary>高亮当前选中的侧边栏项目，其余的清成透明——纯视觉反馈，不影响功能。</summary>
     private void UpdateSidebarSelection(int index)
     {
-        var buttons = new[] { NavDashboardButton, NavMaterialsButton, NavGradesButton, NavScheduleButton };
+        var buttons = new[] { NavDashboardButton, NavMaterialsButton, NavGradesButton, NavTimetableButton, NavScheduleButton };
         for (var i = 0; i < buttons.Length; i++)
         {
             if (i == index)

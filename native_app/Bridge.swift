@@ -149,6 +149,25 @@ class NativeBridge: NSObject, WKScriptMessageHandler {
                 completion(.success(true))
             }
 
+        case "getCourses":
+            runPythonCaptureOutput(["list_tracked_courses.py"]) { result in
+                completion(result.flatMap { output in
+                    guard let data = output.data(using: .utf8),
+                          let parsed = try? JSONSerialization.jsonObject(with: data) else {
+                        return .failure(BridgeError.scriptFailed("课程列表解析失败"))
+                    }
+                    return .success(parsed)
+                })
+            }
+
+        case "getTimetable":
+            completion(.success(TimetableFile.load()))
+
+        case "saveTimetable":
+            let blocks = payload["blocks"] as? [[String: Any]] ?? []
+            TimetableFile.save(blocks)
+            completion(.success(true))
+
         default:
             completion(.failure(BridgeError.unknownAction(action)))
         }
@@ -168,6 +187,40 @@ class NativeBridge: NSObject, WKScriptMessageHandler {
             try task.run()
         } catch {
             DispatchQueue.main.async { completion(-1) }
+        }
+    }
+
+    // 不用传 stdin、只要捕获 stdout 的版本——给 list_tracked_courses.py 这类不需要
+    // 输入、直接读本地文件/数据库就能出结果的脚本用。
+    private func runPythonCaptureOutput(_ arguments: [String], completion: @escaping (Result<String, Error>) -> Void) {
+        let task = Process()
+        task.currentDirectoryURL = URL(fileURLWithPath: projectDir)
+        task.executableURL = URL(fileURLWithPath: projectDir + "/.venv/bin/python3")
+        task.arguments = arguments
+
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        task.standardOutput = stdoutPipe
+        task.standardError = stderrPipe
+
+        task.terminationHandler = { process in
+            let outData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            let errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            let out = String(data: outData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let err = String(data: errData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            DispatchQueue.main.async {
+                if process.terminationStatus == 0 {
+                    completion(.success(out))
+                } else {
+                    completion(.failure(BridgeError.scriptFailed(err.isEmpty ? "脚本运行失败" : err)))
+                }
+            }
+        }
+
+        do {
+            try task.run()
+        } catch {
+            DispatchQueue.main.async { completion(.failure(error)) }
         }
     }
 
@@ -228,6 +281,27 @@ enum ScheduleFile {
 
     static func save(_ alarms: [[String: Any]]) {
         guard let data = try? JSONSerialization.data(withJSONObject: ["alarms": alarms], options: [.prettyPrinted]) else { return }
+        try? data.write(to: URL(fileURLWithPath: path))
+    }
+}
+
+// 课程表（timetable.json）——星期几/几点/教室是用户自己填的，Canvas 不提供这份数据
+// （教务系统才有），跟 schedule.json 一样原样存取一个 JSON 数组，不用额外的触发脚本
+// （不像提醒时间要驱动 launchd/schtasks，课程表只是给用户自己看，没有后台联动）。
+enum TimetableFile {
+    static var path: String { projectDir + "/timetable.json" }
+
+    static func load() -> [[String: Any]] {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let blocks = json["blocks"] as? [[String: Any]] else {
+            return []
+        }
+        return blocks
+    }
+
+    static func save(_ blocks: [[String: Any]]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: ["blocks": blocks], options: [.prettyPrinted]) else { return }
         try? data.write(to: URL(fileURLWithPath: path))
     }
 }

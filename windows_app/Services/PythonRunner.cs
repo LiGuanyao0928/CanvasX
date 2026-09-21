@@ -122,6 +122,48 @@ public static class PythonRunner
     }
 
     /// <summary>
+    /// 给 list_tracked_courses.py 这类不需要 stdin、直接读本地文件/数据库就能出结果的
+    /// 脚本用：只捕获 stdout/stderr 一起返回，不写任何输入。对应 Mac 版 Bridge.swift 的
+    /// runPythonCaptureOutput。
+    /// </summary>
+    public static async Task<(int ExitCode, string StdOut, string StdErr)> RunCaptureOutputAsync(
+        IEnumerable<string> arguments)
+    {
+        var args = arguments.ToArray();
+        var pythonExe = ProjectPaths.PythonExe;
+
+        if (!File.Exists(pythonExe))
+        {
+            throw new InvalidOperationException(
+                $"找不到 Python 虚拟环境（{pythonExe}）。请先在项目目录运行 setup.bat。");
+        }
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = pythonExe,
+            WorkingDirectory = ProjectPaths.ProjectRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Utf8NoBom,
+            StandardErrorEncoding = Utf8NoBom,
+        };
+        foreach (var a in args) psi.ArgumentList.Add(a);
+
+        using var process = new Process { StartInfo = psi };
+        process.Start();
+
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync().ConfigureAwait(true);
+        var stdout = (await stdoutTask.ConfigureAwait(true)).Trim();
+        var stderr = (await stderrTask.ConfigureAwait(true)).Trim();
+
+        return (process.ExitCode, stdout, stderr);
+    }
+
+    /// <summary>
     /// 给 fetch_courses.py / write_config.py 这类"从 stdin 读一段 JSON、把结果/错误打到
     /// stdout/stderr"的脚本用：写一段 JSON 文本到子进程 stdin，捕获 stdout 和 stderr 一起
     /// 返回（不像 RunAsync 那样只关心退出码）。对应 Mac 版 Bridge.swift 的 runPythonJSON。

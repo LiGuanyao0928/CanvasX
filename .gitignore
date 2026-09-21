@@ -3,6 +3,7 @@
 .env
 tracked_courses.json
 schedule.json
+timetable.json
 calendar_synced_ids.json
 canvas.db
 canvas.db-journal

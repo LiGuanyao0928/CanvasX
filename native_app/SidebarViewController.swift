@@ -55,6 +55,7 @@ class SidebarViewController: NSViewController, NSTableViewDataSource, NSTableVie
         Item(title: "作业看板", icon: "list.bullet.clipboard"),
         Item(title: "课程资料", icon: "folder"),
         Item(title: "成绩", icon: "chart.bar.fill"),
+        Item(title: "课程表", icon: "calendar"),
         Item(title: "提醒时间", icon: "alarm"),
         Item(title: "设置", icon: "gearshape"),
     ]

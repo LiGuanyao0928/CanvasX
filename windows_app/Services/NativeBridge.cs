@@ -215,6 +215,37 @@ public sealed class NativeBridge
                 return;
             }
 
+            case "getCourses":
+            {
+                // list_tracked_courses.py 不需要 stdin，直接读本机已同步的 canvas.db，
+                // 不用再打一次 Canvas API——对应 Mac 版 Bridge.swift 的 runPythonCaptureOutput。
+                var (code, stdout, stderr) = await PythonRunner.RunCaptureOutputAsync(
+                    new[] { "list_tracked_courses.py" }).ConfigureAwait(true);
+                if (code != 0)
+                {
+                    onFailure(string.IsNullOrEmpty(stderr) ? "脚本运行失败" : stderr);
+                    return;
+                }
+                onSuccess(stdout);
+                return;
+            }
+
+            case "getTimetable":
+                onSuccess(TimetableStore.LoadBlocksJson());
+                return;
+
+            case "saveTimetable":
+            {
+                var blocksJson = payload.ValueKind == JsonValueKind.Object
+                    && payload.TryGetProperty("blocks", out var blocksEl)
+                    && blocksEl.ValueKind == JsonValueKind.Array
+                        ? blocksEl.GetRawText()
+                        : "[]";
+                TimetableStore.Save(blocksJson);
+                onSuccess("true");
+                return;
+            }
+
             default:
                 onFailure($"未知的桥接调用：{action}");
                 return;

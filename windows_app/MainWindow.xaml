@@ -59,7 +59,9 @@
                             Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
                     <Button x:Name="NavGradesButton" Content="📊  成绩" Tag="2"
                             Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
-                    <Button x:Name="NavScheduleButton" Content="⏰  提醒时间" Tag="3"
+                    <Button x:Name="NavTimetableButton" Content="🗓️  课程表" Tag="3"
+                            Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
+                    <Button x:Name="NavScheduleButton" Content="⏰  提醒时间" Tag="4"
                             Style="{StaticResource SidebarButtonStyle}" Click="NavButton_Click" />
                 </StackPanel>
 

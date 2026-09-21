@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课程表</title>
+<link rel="stylesheet" href="app_theme.css">
+<style>
+  body { padding: 24px 32px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .warning-note { font-size: 12px; color: var(--warning); margin-bottom: 16px; }
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+
+  .grid-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 56px repeat(7, minmax(120px, 1fr));
+    min-width: 920px;
+  }
+  .grid-header {
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    background: var(--card-bg);
+    position: sticky;
+    top: 0;
+  }
+  .grid-header.corner { border-left: none; background: var(--bg); }
+  .time-col {
+    position: relative;
+    border-left: none;
+  }
+  .time-label {
+    position: absolute;
+    right: 6px;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .day-col {
+    position: relative;
+    border-left: 1px solid var(--border);
+    background-image: linear-gradient(var(--border) 1px, transparent 1px);
+  }
+  .block {
+    position: absolute;
+    left: 3px; right: 3px;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 11px;
+    color: #fff;
+    overflow: hidden;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .block .course-name { font-weight: 600; display: block; }
+  .block .meta { opacity: 0.85; }
+
+  .editor-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    align-items: center; justify-content: center;
+  }
+  .editor-backdrop.open { display: flex; }
+  .editor {
+    width: 360px;
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 22px;
+    border: 1px solid var(--border);
+  }
+  .editor h2 { font-size: 15px; margin: 0 0 14px; }
+  .editor .field { margin-bottom: 12px; }
+  .day-picker-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .day-chip {
+    padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
+    font-size: 12px; cursor: pointer; user-select: none;
+  }
+  .day-chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+  .time-row { display: flex; gap: 10px; align-items: center; }
+  .editor-buttons { display: flex; justify-content: space-between; margin-top: 18px; }
+  select {
+    width: 100%; padding: 9px 12px; font-size: 13px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg); color: var(--text);
+  }
+</style>
+</head>
+<body>
+  <h1>课程表</h1>
+  <p class="subtitle">星期几、几点到几点、教室都是你自己填的——这些信息本来就在教务系统的选课页面里，不在 Canvas 上，Canvas 只提供课程名字。</p>
+  <p class="warning-note">⚠️ 每学期/每次选课变动后记得自己更新，这里不会自动跟着教务系统变。</p>
+
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btnAdd">＋ 添加课程时间</button>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="editor-backdrop" id="editorBackdrop">
+    <div class="editor">
+      <h2 id="editorTitle">添加课程时间</h2>
+      <div class="field">
+        <label class="field-label">课程</label>
+        <select id="courseSelect"></select>
+      </div>
+      <div class="field">
+        <label class="field-label">星期几</label>
+        <div class="day-picker-row" id="dayPicker"></div>
+      </div>
+      <div class="field">
+        <label class="field-label">时间</label>
+        <div class="time-row">
+          <input type="time" id="startTimeInput" value="09:00">
+          <span class="hint">至</span>
+          <input type="time" id="endTimeInput" value="10:20">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">教室（可选）</label>
+        <input type="text" id="locationInput" placeholder="比如 ERC 1030">
+      </div>
+      <div class="editor-buttons">
+        <button class="btn btn-danger" id="btnDelete" style="display:none">删除</button>
+        <div style="flex:1"></div>
+        <button class="btn" id="btnCancel">取消</button>
+        <button class="btn btn-primary" id="btnSave" style="margin-left:8px">保存</button>
+      </div>
+    </div>
+  </div>
+
+<script src="bridge.js"></script>
+<script>
+  const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // 周一到周日，内部存储仍是 0=周日...6=周六
+  const DAY_LABELS = { 0: "周日", 1: "周一", 2: "周二", 3: "周三", 4: "周四", 5: "周五", 6: "周六" };
+  const START_HOUR = 7, END_HOUR = 22, PX_PER_HOUR = 52;
+  const PALETTE = ["#4f7cff", "#e0623d", "#2fa774", "#a259c9", "#d99a26", "#3aa0b0", "#c94f7c"];
+
+  let blocks = [];
+  let courses = [];
+  let editingId = null;
+
+  function courseColor(courseId) {
+    const idx = courses.findIndex(c => c.id === courseId);
+    return PALETTE[(idx < 0 ? 0 : idx) % PALETTE.length];
+  }
+  function courseName(courseId) {
+    const c = courses.find(c => c.id === courseId);
+    return c ? c.name : "未知课程";
+  }
+  function timeToMinutes(t) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+  function minutesToTop(mins) {
+    return ((mins - START_HOUR * 60) / 60) * PX_PER_HOUR;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    const totalHeight = (END_HOUR - START_HOUR) * PX_PER_HOUR;
+
+    grid.appendChild(el("div", "grid-header corner"));
+    for (const day of DAY_ORDER) {
+      grid.appendChild(el("div", "grid-header", DAY_LABELS[day]));
+    }
+
+    const timeCol = el("div", "time-col");
+    timeCol.style.height = totalHeight + "px";
+    for (let h = START_HOUR; h <= END_HOUR; h++) {
+      const label = el("div", "time-label", String(h).padStart(2, "0") + ":00");
+      label.style.top = ((h - START_HOUR) * PX_PER_HOUR) + "px";
+      timeCol.appendChild(label);
+    }
+    grid.appendChild(timeCol);
+
+    for (const day of DAY_ORDER) {
+      const col = el("div", "day-col");
+      col.style.height = totalHeight + "px";
+      col.style.backgroundSize = `100% ${PX_PER_HOUR}px`;
+      for (const block of blocks.filter(b => b.day === day)) {
+        const top = minutesToTop(timeToMinutes(block.startTime));
+        const height = Math.max(24, minutesToTop(timeToMinutes(block.endTime)) - top);
+        const div = el("div", "block");
+        div.style.top = top + "px";
+        div.style.height = height + "px";
+        div.style.background = courseColor(block.courseId);
+        div.innerHTML = `<span class="course-name">${escapeHtml(courseName(block.courseId))}</span><span class="meta">${block.startTime}-${block.endTime}${block.location ? " · " + escapeHtml(block.location) : ""}</span>`;
+        div.addEventListener("click", () => openEditor(block));
+        col.appendChild(div);
+      }
+      grid.appendChild(col);
+    }
+  }
+
+  function el(tag, className, text) {
+    const e = document.createElement(tag);
+    e.className = className;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function populateCourseSelect() {
+    const select = document.getElementById("courseSelect");
+    select.innerHTML = "";
+    for (const c of courses) {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    }
+  }
+
+  let editingDay = 1;
+  function renderDayPicker() {
+    const picker = document.getElementById("dayPicker");
+    picker.innerHTML = "";
+    for (const day of DAY_ORDER) {
+      const chip = el("div", "day-chip" + (day === editingDay ? " active" : ""), DAY_LABELS[day]);
+      chip.addEventListener("click", () => { editingDay = day; renderDayPicker(); });
+      picker.appendChild(chip);
+    }
+  }
+
+  function openEditor(block) {
+    editingId = block ? block.id : null;
+    document.getElementById("editorTitle").textContent = block ? "编辑课程时间" : "添加课程时间";
+    document.getElementById("btnDelete").style.display = block ? "inline-flex" : "none";
+    editingDay = block ? block.day : 1;
+    renderDayPicker();
+    document.getElementById("startTimeInput").value = block ? block.startTime : "09:00";
+    document.getElementById("endTimeInput").value = block ? block.endTime : "10:20";
+    document.getElementById("locationInput").value = block ? (block.location || "") : "";
+    if (block) document.getElementById("courseSelect").value = block.courseId;
+    document.getElementById("editorBackdrop").classList.add("open");
+  }
+  function closeEditor() {
+    document.getElementById("editorBackdrop").classList.remove("open");
+  }
+
+  document.getElementById("btnAdd").addEventListener("click", () => openEditor(null));
+  document.getElementById("btnCancel").addEventListener("click", closeEditor);
+  document.getElementById("editorBackdrop").addEventListener("click", (e) => {
+    if (e.target.id === "editorBackdrop") closeEditor();
+  });
+
+  document.getElementById("btnSave").addEventListener("click", () => {
+    const courseId = parseInt(document.getElementById("courseSelect").value, 10);
+    const startTime = document.getElementById("startTimeInput").value;
+    const endTime = document.getElementById("endTimeInput").value;
+    const location = document.getElementById("locationInput").value.trim();
+    if (!startTime || !endTime || timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      alert("结束时间要晚于开始时间");
+      return;
+    }
+    if (editingId) {
+      const b = blocks.find(b => b.id === editingId);
+      Object.assign(b, { courseId, day: editingDay, startTime, endTime, location });
+    } else {
+      blocks.push({
+        id: "block-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+        courseId, day: editingDay, startTime, endTime, location,
+      });
+    }
+    closeEditor();
+    renderGrid();
+    save();
+  });
+
+  document.getElementById("btnDelete").addEventListener("click", () => {
+    blocks = blocks.filter(b => b.id !== editingId);
+    closeEditor();
+    renderGrid();
+    save();
+  });
+
+  async function save() {
+    try {
+      await NativeBridge.send("saveTimetable", { blocks });
+    } catch (e) {
+      alert("保存课程表失败：" + e.message);
+    }
+  }
+
+  async function init() {
+    try {
+      courses = await NativeBridge.send("getCourses");
+    } catch (e) {
+      courses = [];
+    }
+    populateCourseSelect();
+    try {
+      blocks = await NativeBridge.send("getTimetable");
+    } catch (e) {
+      blocks = [];
+    }
+    renderGrid();
+  }
+  init();
+</script>
+</body>
+</html>

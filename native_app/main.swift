@@ -9,6 +9,7 @@ let dashboardPath = projectDir + "/dashboard.html"
 let materialsPath = projectDir + "/materials.html"
 let gradesPath = projectDir + "/grades.html"
 let schedulePath = projectDir + "/schedule.html"
+let timetablePath = projectDir + "/timetable.html"
 
 // 检查 .env 里是不是已经填了 Canvas 账号信息——没有的话说明是第一次用，
 // 先走设置向导，不直接进主界面。只做最简单的手动解析，不用引入额外的库。
@@ -147,10 +148,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         return true
     }
 
-    // MARK: - 左侧边栏切换：作业看板 / 课程资料 / 成绩 / 提醒时间 / 设置
+    // MARK: - 左侧边栏切换：作业看板 / 课程资料 / 成绩 / 课程表 / 提醒时间 / 设置
 
     func sectionChanged(_ index: Int) {
-        if index == 4 {
+        if index == 5 {
             // "设置"不是一块常驻内容，点了弹单独的设置窗口，侧边栏高亮退回原来那块。
             showSettings()
             sidebarVC.selectRowSilently(currentSection)
@@ -163,6 +164,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         case 2:
             loadPage(gradesPath)
         case 3:
+            loadPage(timetablePath)
+        case 4:
             loadPage(schedulePath)
         default:
             loadPage(dashboardPath)
