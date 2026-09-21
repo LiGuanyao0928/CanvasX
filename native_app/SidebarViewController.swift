@@ -97,7 +97,7 @@ class SidebarViewController: NSViewController, NSTableViewDataSource, NSTableVie
         // 这个额外的容器view会跟 NSSplitViewItem(sidebarWithViewController:) 自带的
         // sidebar材质/点击处理机制冲突。改成 NSScrollView 自己的悬浮子视图（floating subview）
         // 就没有这个问题：self.view 还是 scrollView 本身，不再多包一层。
-        let header = NSTextField(labelWithString: "📚 Canvas")
+        let header = NSTextField(labelWithString: "📚 CanvasX")
         header.font = .systemFont(ofSize: 13, weight: .semibold)
         header.textColor = .sidebarPrimaryText
         header.translatesAutoresizingMaskIntoConstraints = false

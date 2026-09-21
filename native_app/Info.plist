@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>CanvasDashboard</string>
+    <string>CanvasX</string>
     <key>CFBundleDisplayName</key>
-    <string>Canvas Dashboard</string>
+    <string>CanvasX</string>
     <key>CFBundleExecutable</key>
-    <string>CanvasDashboardApp</string>
+    <string>CanvasXApp</string>
     <key>CFBundleIdentifier</key>
-    <string>com.guanyao.canvasdashboard</string>
+    <string>com.guanyao.canvasx</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>

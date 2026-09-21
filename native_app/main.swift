@@ -1,7 +1,7 @@
 import Cocoa
 import WebKit
 
-// 项目目录不再写死——CanvasDashboard.app 固定放在项目文件夹里面，
+// 项目目录不再写死——CanvasX.app 固定放在项目文件夹里面，
 // 用 App 自己所在的位置往上推一层就能拿到项目目录，不管这个文件夹
 // 被放在谁的电脑上、放在哪个路径下都一样能跑。
 let projectDir: String = Bundle.main.bundleURL.deletingLastPathComponent().path
@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
 
     func showSetupWizard() {
         wizardWindowController = WebPageWindowController(
-            htmlFileName: "setup_wizard.html", title: "欢迎使用 Canvas 作业追踪", width: 480, height: 780)
+            htmlFileName: "setup_wizard.html", title: "欢迎使用 CanvasX", width: 480, height: 780)
         wizardWindowController.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -80,9 +80,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
             backing: .buffered,
             defer: false
         )
-        window.title = "Canvas 作业追踪"
+        window.title = "CanvasX"
         window.center()
-        window.setFrameAutosaveName("CanvasDashboardMainWindow")
+        window.setFrameAutosaveName("CanvasXMainWindow")
         window.toolbarStyle = .unified
         window.toolbar = NSToolbar(identifier: "MainToolbar")
         window.backgroundColor = .contentBackground
@@ -350,13 +350,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         let mainMenu = NSMenu()
 
         let appMenuItem = NSMenuItem()
-        appMenuItem.title = "Canvas Dashboard"
-        let appMenu = NSMenu(title: "Canvas Dashboard")
+        appMenuItem.title = "CanvasX"
+        let appMenu = NSMenu(title: "CanvasX")
         let settingsItem = NSMenuItem(title: "设置…", action: #selector(settingsMenuAction), keyEquivalent: ",")
         settingsItem.target = self
         appMenu.addItem(settingsItem)
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: "退出 Canvas 作业追踪", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: "退出 CanvasX", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
 

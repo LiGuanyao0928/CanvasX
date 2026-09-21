@@ -27,8 +27,8 @@ __pycache__/
 *.pyc
 
 # 编译产物——每个人用 native_app/build.sh 自己编译签名，不提交二进制
-native_app/CanvasDashboardApp
-CanvasDashboard.app/
+native_app/CanvasXApp
+CanvasX.app/
 
 # Windows 版 .NET 编译产物
 windows_app/bin/

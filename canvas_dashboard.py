@@ -222,7 +222,7 @@ def build_html(days):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="light dark">
-<title>Canvas 作业追踪</title>
+<title>CanvasX</title>
 <style>
   :root {{
     --bg: #ffffff;
@@ -553,7 +553,7 @@ def build_html(days):
 <body>
 <div class="page" id="page">
   <div class="header">
-    <h1>📚 Canvas 作业追踪</h1>
+    <h1>📚 CanvasX</h1>
     <div class="meta">更新时间 {generated_at} · 未来 {days} 天</div>
     <div class="search-row">
       <input id="search-box" type="text" placeholder="搜索作业标题 / 课程 / 说明文字 / 附件名…" autocomplete="off">

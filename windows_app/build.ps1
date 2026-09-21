@@ -6,7 +6,7 @@
       powershell -ExecutionPolicy Bypass -File windows_app\build.ps1
 
   需要电脑上先装好 .NET 8 SDK（跑 dotnet --version 应该显示 8.x）。
-  编译产物在：windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasDashboardWin.exe
+  编译产物在：windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasX.exe
 #>
 
 $ErrorActionPreference = "Stop"
@@ -27,7 +27,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $publishDir = Join-Path $PSScriptRoot "bin\Release\net8.0-windows\win-x64\publish"
-$exePath = Join-Path $publishDir "CanvasDashboardWin.exe"
+$exePath = Join-Path $publishDir "CanvasX.exe"
 
 if (Test-Path $exePath) {
     Write-Host "✅ 编译完成：$exePath" -ForegroundColor Green

@@ -1,4 +1,4 @@
-# Canvas 作业追踪 · Windows 客户端
+# CanvasX · Windows 客户端
 
 WPF（.NET 8）原生客户端，对齐 `native_app/`（Mac 版，Swift + AppKit）的功能范围。
 
@@ -42,7 +42,7 @@ cd windows_app
 powershell -ExecutionPolicy Bypass -File build.ps1
 
 # 编译产物：
-# windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasDashboardWin.exe
+# windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasX.exe
 ```
 
 也可以直接用 Visual Studio 2022（装 ".NET 桌面开发" workload）打开

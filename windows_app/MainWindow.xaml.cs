@@ -40,7 +40,7 @@ public partial class MainWindow : Window
             MessageBox.Show(this,
                 "WebView2 初始化失败，通常是因为这台电脑还没装 WebView2 Runtime（新版 Windows 10/11 一般已经" +
                 $"随 Edge 自带，缺失的话去微软官网搜 \"WebView2 Runtime\" 下载安装）。\n\n详细信息：{ex.Message}",
-                "Canvas 作业追踪", MessageBoxButton.OK, MessageBoxImage.Error);
+                "CanvasX", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
@@ -202,7 +202,7 @@ public partial class MainWindow : Window
             catch (Exception ex)
             {
                 MessageBox.Show(this, $"添加文件失败：{Path.GetFileName(path)}\n\n{ex.Message}",
-                    "Canvas 作业追踪", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "CanvasX", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -218,7 +218,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(this, $"删除文件失败：{ex.Message}",
-                "Canvas 作业追踪", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "CanvasX", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         NavigateSection(1);
     }

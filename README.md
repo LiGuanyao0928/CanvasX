@@ -1,6 +1,6 @@
-# Canvas 作业追踪
+# CanvasX
 
-一个个人用的 Canvas LMS 作业追踪 App：自动同步作业/测验/成绩/课程资料，猜出
+一个 Canvas LMS 作业追踪 App：自动同步作业/测验/成绩/课程资料，猜出
 Canvas 没写清楚的截止日期，推送手机提醒，还能同步进日历。Mac/Windows 都有
 原生客户端（Mac 是 Swift + AppKit，Windows 是 C# + WPF），Linux 目前是网页版，
 后台数据同步统一用 Python 脚本，三个平台共用同一份。
@@ -138,7 +138,7 @@ timetable.json              你填的课程表（不提交到仓库）
 编译身份都会变，TCC 就当作新 App 处理。想避免的话自己建一个本地签名证书：
 钥匙串访问 → 证书助理 → 创建证书 → 身份类型选"自签名根证书"，证书类型选
 "代码签名"，名字改成 `native_app/build.sh` 里 `SIGNING_IDENTITY` 那一行
-写的名字（默认是 `CanvasDashboard Local Dev`）。
+写的名字（默认是 `CanvasX Local Dev`）。
 
 **这个证书能直接给同学用吗，这样大家都不用重新弹权限了？** 不行。证书的
 私钥是生成在你自己电脑的钥匙串里的，没法拷给别人、也没法通过 git 仓库或

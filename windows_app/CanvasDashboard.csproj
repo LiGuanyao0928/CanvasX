@@ -11,8 +11,10 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>CanvasDashboardWin</AssemblyName>
+    <AssemblyName>CanvasX</AssemblyName>
     <RootNamespace>CanvasDashboard</RootNamespace>
+    <AssemblyTitle>CanvasX</AssemblyTitle>
+    <Product>CanvasX</Product>
 
     <!-- 故意不在这里写死 SelfContained/RuntimeIdentifiers——那些只应该在"发布"时生效
          （见 build.ps1 里完整的 dotnet publish 命令），写在项目文件里会影响到平时用

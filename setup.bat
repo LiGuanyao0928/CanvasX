@@ -33,7 +33,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "EXE_PATH=windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasDashboardWin.exe"
+set "EXE_PATH=windows_app\bin\Release\net8.0-windows\win-x64\publish\CanvasX.exe"
 
 echo == 3/3 打开客户端 ==
 if exist "logs" (

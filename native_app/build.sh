@@ -1,5 +1,5 @@
 #!/bin/bash
-# 重新编译 CanvasDashboardApp 并装回 .app bundle。第一次跑（.app 还不存在）
+# 重新编译 CanvasXApp 并装回 .app bundle。第一次跑（.app 还不存在）
 # 会自动把整个 bundle 骨架搭起来，之后每次跑只是重新编译+签名。
 #
 # 签名身份：优先用本地自签名证书（如果钥匙串里有的话）——好处是身份稳定，
@@ -18,8 +18,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-SIGNING_IDENTITY="CanvasDashboard Local Dev"
-APP="../CanvasDashboard.app"
+SIGNING_IDENTITY="CanvasX Local Dev"
+APP="../CanvasX.app"
 
 # 第一次跑，.app 骨架还不存在的话先搭起来
 if [ ! -d "$APP" ]; then
@@ -28,9 +28,9 @@ if [ ! -d "$APP" ]; then
     cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 fi
 
-swiftc *.swift -o CanvasDashboardApp -framework Cocoa -framework WebKit
+swiftc *.swift -o CanvasXApp -framework Cocoa -framework WebKit
 
-cp CanvasDashboardApp "$APP/Contents/MacOS/CanvasDashboardApp"
+cp CanvasXApp "$APP/Contents/MacOS/CanvasXApp"
 
 if ! codesign --force --deep --sign "$SIGNING_IDENTITY" "$APP" 2>/tmp/canvas_codesign_err.log; then
     echo "⚠️ 找不到证书\"$SIGNING_IDENTITY\"，改用 ad-hoc 签名"

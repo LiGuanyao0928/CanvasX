@@ -24,6 +24,6 @@ echo "✅ App 编译好了"
 
 echo "== 3/3 打开 App =="
 mkdir -p logs
-open CanvasDashboard.app
+open CanvasX.app
 echo "✅ 完成！第一次打开会看到设置向导，跟着填你自己的 Canvas 网址/Token/要追踪的课程就行。"
 echo "   如果系统提示"无法打开，因为无法验证开发者"，去"系统设置 → 隐私与安全性"里点"仍要打开"。"

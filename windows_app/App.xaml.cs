@@ -37,7 +37,7 @@ public partial class App : Application
                 $"详细信息：{ex.Message}\n\n" +
                 "请确认这个程序是从 canvas-project 项目文件夹内部（比如 windows_app\\bin\\... 或你自己放的任意子目录）运行的，" +
                 "而不是被单独拷贝到了别的地方。",
-                "Canvas 作业追踪 - 启动失败",
+                "CanvasX - 启动失败",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(-1);
@@ -62,7 +62,7 @@ public partial class App : Application
     /// <summary>首次使用、以及"退出登录"/在设置里"重新选课"时，展示设置向导网页窗口。</summary>
     public static void ShowSetupWizard()
     {
-        _wizardWindow = new WebPageWindow("setup_wizard.html", "欢迎使用 Canvas 作业追踪", 480, 780);
+        _wizardWindow = new WebPageWindow("setup_wizard.html", "欢迎使用 CanvasX", 480, 780);
         _wizardWindow.Show();
         _wizardWindow.Activate();
     }
@@ -127,7 +127,7 @@ public partial class App : Application
     {
         MessageBox.Show(
             $"出现了一个没处理的错误，App 可能需要重新启动：\n\n{e.Exception.Message}",
-            "Canvas 作业追踪",
+            "CanvasX",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;

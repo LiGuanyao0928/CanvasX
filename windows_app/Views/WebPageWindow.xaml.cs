@@ -37,7 +37,7 @@ public partial class WebPageWindow : Window
             MessageBox.Show(this,
                 "WebView2 初始化失败，通常是因为这台电脑还没装 WebView2 Runtime（新版 Windows 10/11 一般已经" +
                 $"随 Edge 自带，缺失的话去微软官网搜索 \"WebView2 Runtime\" 下载安装）。\n\n详细信息：{ex.Message}",
-                "Canvas 作业追踪", MessageBoxButton.OK, MessageBoxImage.Error);
+                "CanvasX", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
@@ -60,7 +60,7 @@ public partial class WebPageWindow : Window
         }
         else
         {
-            MessageBox.Show(this, $"找不到页面文件：{path}", "Canvas 作业追踪",
+            MessageBox.Show(this, $"找不到页面文件：{path}", "CanvasX",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

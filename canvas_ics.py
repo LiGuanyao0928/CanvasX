@@ -30,7 +30,7 @@ def build_ics(rows):
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//CanvasDashboard//canvas_ics.py//CN",
+        "PRODID:-//CanvasX//canvas_ics.py//CN",
         "CALSCALE:GREGORIAN",
         "X-WR-CALNAME:Canvas 作业",
     ]
