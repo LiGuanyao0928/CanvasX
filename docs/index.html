@@ -98,6 +98,21 @@
 
   footer { padding: 40px 0 60px; text-align: center; color: var(--muted); font-size: 13px; }
   footer a { color: var(--accent-b); text-decoration: none; }
+
+  .feedback-card {
+    max-width: 640px; margin: 0 auto; text-align: center;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px;
+    padding: 36px 28px;
+  }
+  .feedback-card h2 { margin: 0 0 8px; font-size: 22px; }
+  .feedback-card p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+  .feedback-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-feedback {
+    display: inline-block; padding: 11px 22px; border-radius: 10px; font-weight: 600;
+    text-decoration: none; font-size: 14px;
+  }
+  .btn-feedback.primary { background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); color: #fff; }
+  .btn-feedback.secondary { background: var(--code-bg); color: var(--text); border: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -224,6 +239,19 @@
     <div class="faq-item">
       <h4>Windows 客户端稳定吗？</h4>
       <p>这部分是较新加入的功能，如果遇到问题欢迎在 GitHub 仓库提 Issue，或者直接联系作者反馈。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="feedback-card">
+      <h2>用得怎么样？</h2>
+      <p>用着有 bug、哪里不好用、想加什么功能，都欢迎说一声——尤其是 Windows 客户端，目前最需要真实反馈。</p>
+      <div class="feedback-actions">
+        <a class="btn-feedback primary" href="https://github.com/LiGuanyao0928/CanvasX/issues/new" target="_blank" rel="noopener">提交反馈 / 报 Bug</a>
+        <a class="btn-feedback secondary" href="https://github.com/LiGuanyao0928/CanvasX/issues" target="_blank" rel="noopener">看看已有的反馈</a>
+      </div>
     </div>
   </div>
 </section>
