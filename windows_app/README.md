@@ -141,9 +141,9 @@ C# 强类型模型）、`Services/Loc.cs`（原生设置窗口专用的中英字
 
 5. **项目根目录解析（`Services/ProjectPaths.cs`）**——从 exe 所在目录往上找包含
    `canvas_sync.py` 的文件夹。如果你把编译好的 exe 单独拷到别的地方运行（不在
-   `canvas-project` 目录树下），或者 `PublishSingleFile` 自解压后的临时目录结构跟设想的
+   `CanvasX` 项目目录树下），或者 `PublishSingleFile` 自解压后的临时目录结构跟设想的
    不一样，这里就会找不到，启动时会弹出中文错误框（不会静默崩溃）。**建议第一次测试时
-   就从项目原始位置（`windows_app\bin\...\publish\` 或者直接拷到 `canvas-project` 根目录）
+   就从项目原始位置（`windows_app\bin\...\publish\` 或者直接拷到 `CanvasX` 项目根目录）
    运行 exe，排除这个变量。**
 
 6. **WebView2 自定义 scheme 拦截（`MainWindow.xaml.cs` 的

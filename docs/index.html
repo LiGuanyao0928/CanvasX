@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CanvasX</title>
+<meta name="description" content="CanvasX —— Canvas LMS 作业追踪 App，自动同步作业/成绩/资料，推送手机提醒。Mac / Windows / Linux 都能用。">
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --card-bg: #ffffff;
+    --text: #1c1c28;
+    --muted: #6b6b7b;
+    --border: #e6e6ef;
+    --accent-a: #7c6ef5;
+    --accent-b: #2563eb;
+    --code-bg: #f0f0f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101018;
+      --card-bg: #181822;
+      --text: #f0f0f5;
+      --muted: #9a9aab;
+      --border: #2a2a38;
+      --code-bg: #1f1f2c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+
+  header.hero {
+    padding: 72px 0 56px; text-align: center;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    color: #fff;
+  }
+  .icon {
+    width: 96px; height: 96px; border-radius: 22px; margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.14); backdrop-filter: blur(6px);
+  }
+  .icon svg { width: 64px; height: 64px; }
+  header.hero h1 { font-size: 40px; margin: 0 0 10px; font-weight: 800; letter-spacing: -0.5px; }
+  header.hero p.tagline { font-size: 17px; margin: 0 auto; max-width: 520px; opacity: 0.92; }
+  .hero-badges { margin-top: 22px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge { font-size: 13px; background: rgba(255,255,255,0.16); padding: 6px 14px; border-radius: 999px; }
+  .cta-row { margin-top: 30px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 12px 24px; border-radius: 10px; font-weight: 600;
+    text-decoration: none; font-size: 15px; transition: transform 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-solid { background: #fff; color: var(--accent-b); }
+  .btn-ghost { background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+
+  section { padding: 56px 0; }
+  section.alt { background: var(--card-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  h2.section-title { font-size: 24px; text-align: center; margin: 0 0 36px; }
+
+  .features {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;
+  }
+  .feature-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+  }
+  .feature-card .emoji { font-size: 26px; margin-bottom: 10px; }
+  .feature-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .feature-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .dl-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .dl-card .plat { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .dl-card .req { font-size: 13px; color: var(--muted); }
+  .dl-card ol { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--muted); }
+  .dl-card ol li { margin-bottom: 4px; }
+  .dl-btn {
+    margin-top: auto; text-align: center; padding: 10px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-a), var(--accent-b)); color: #fff;
+    text-decoration: none; font-weight: 600; font-size: 14px;
+  }
+  code, .code-inline {
+    background: var(--code-bg); padding: 2px 6px; border-radius: 5px; font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .faq { max-width: 720px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid var(--border); padding: 16px 0; }
+  .faq-item h4 { margin: 0 0 6px; font-size: 15px; }
+  .faq-item p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  footer { padding: 40px 0 60px; text-align: center; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--accent-b); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="icon">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
+              font-family="Helvetica Neue, Arial, sans-serif" font-weight="700"
+              font-size="700" fill="#ffffff">X</text>
+      </svg>
+    </div>
+    <h1>CanvasX</h1>
+    <p class="tagline">Canvas LMS 作业追踪 App —— 自动同步作业/测验/成绩/课程资料，猜出 Canvas 没写清楚的截止日期，推送手机提醒，还能同步进日历。</p>
+    <div class="hero-badges">
+      <span class="badge">macOS 原生客户端</span>
+      <span class="badge">Windows 原生客户端</span>
+      <span class="badge">Linux 网页版</span>
+      <span class="badge">开源 · MIT</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-solid" href="#download">下载</a>
+      <a class="btn btn-ghost" href="https://github.com/LiGuanyao0928/CanvasX" target="_blank" rel="noopener">查看源码</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2 class="section-title">能帮你做什么</h2>
+    <div class="features">
+      <div class="feature-card">
+        <div class="emoji">📋</div>
+        <h3>作业看板</h3>
+        <p>按紧急程度分类显示所有作业，说明和附件直接展开在卡片里，不用再点进 Canvas 网页。</p>
+      </div>
+      <div class="feature-card">
+        <div class="emoji">📁</div>
+        <h3>课程资料</h3>
+        <p>Canvas Modules 里的讲义/PPT 自动下载到本地，网盘式浏览 + 全文搜索。</p>
+      </div>
+      <div class="feature-card">
+        <div class="emoji">📊</div>
+        <h3>成绩计算</h3>
+        <p>按分组权重算当前成绩，还能试算"这门作业考多少分，总成绩会变成多少"。</p>
+      </div>
+      <div class="feature-card">
+        <div class="emoji">🗓️</div>
+        <h3>课程表</h3>
+        <p>手动录入一次，支持隔周课和阅读周，按周切换显示实际日期，课程名对接真实 Canvas 课程。</p>
+      </div>
+      <div class="feature-card">
+        <div class="emoji">🔔</div>
+        <h3>手机推送</h3>
+        <p>ntfy / Discord / 苹果快捷指令，自动同步时间点像闹钟一样自己设。</p>
+      </div>
+      <div class="feature-card">
+        <div class="emoji">📅</div>
+        <h3>日历同步</h3>
+        <p>Mac 自动写进系统日历；Windows/Linux 生成标准 .ics，导入 Outlook / Google 日历都行。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="download">
+  <div class="wrap">
+    <h2 class="section-title">下载</h2>
+    <div class="downloads">
+      <div class="dl-card">
+        <div class="plat">🍎 macOS</div>
+        <div class="req">需要：Xcode 命令行工具 + Python 3</div>
+        <ol>
+          <li>下载并解压项目</li>
+          <li>终端里跑 <code>./setup.sh</code></li>
+          <li>第一次打开会看到设置向导</li>
+        </ol>
+        <a class="dl-btn" href="https://github.com/LiGuanyao0928/CanvasX/archive/refs/heads/main.zip">下载 ZIP</a>
+      </div>
+      <div class="dl-card">
+        <div class="plat">🪟 Windows</div>
+        <div class="req">需要：.NET 8 SDK + Python 3</div>
+        <ol>
+          <li>下载并解压项目</li>
+          <li>双击运行 <code>setup.bat</code></li>
+          <li>第一次打开会看到设置向导</li>
+        </ol>
+        <a class="dl-btn" href="https://github.com/LiGuanyao0928/CanvasX/archive/refs/heads/main.zip">下载 ZIP</a>
+      </div>
+      <div class="dl-card">
+        <div class="plat">🐧 Linux</div>
+        <div class="req">需要：Python 3</div>
+        <ol>
+          <li>下载并解压项目</li>
+          <li>终端里跑 <code>./setup_linux.sh</code></li>
+          <li>网页仪表盘 + cron 定时同步</li>
+        </ol>
+        <a class="dl-btn" href="https://github.com/LiGuanyao0928/CanvasX/archive/refs/heads/main.zip">下载 ZIP</a>
+      </div>
+    </div>
+    <p style="text-align:center; color: var(--muted); font-size: 13.5px; margin-top: 24px;">
+      不想下载 ZIP？也可以用 <span class="code-inline">git clone https://github.com/LiGuanyao0928/CanvasX.git</span>，完整步骤见
+      <a href="https://github.com/LiGuanyao0928/CanvasX#readme" target="_blank" rel="noopener" style="color: var(--accent-b);">README</a>。
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap faq">
+    <h2 class="section-title">常见问题</h2>
+    <div class="faq-item">
+      <h4>我的 Canvas 账号信息安全吗？</h4>
+      <p>CanvasX 完全在你自己电脑上运行，账号 Token 和作业数据只存在本机，不会上传到除 Canvas 官方以外的任何服务器，源码也是公开的，可以自己核实。</p>
+    </div>
+    <div class="faq-item">
+      <h4>Mac 上提示"无法验证开发者"打不开怎么办？</h4>
+      <p>去"系统设置 → 隐私与安全性"，找到提示信息，点"仍要打开"即可。这是因为 App 没有用付费的 Apple 开发者证书签名，不影响正常使用。</p>
+    </div>
+    <div class="faq-item">
+      <h4>生成不了 Canvas Access Token 怎么办？</h4>
+      <p>通常是学校 Canvas 管理员关闭了学生自主生成 Token 的权限，需要联系任课老师或学校 IT/教务开启这项权限，详见仓库 README 的常见问题部分。</p>
+    </div>
+    <div class="faq-item">
+      <h4>Windows 客户端稳定吗？</h4>
+      <p>这部分是较新加入的功能，如果遇到问题欢迎在 GitHub 仓库提 Issue，或者直接联系作者反馈。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>CanvasX 是个人项目，MIT 协议开源。<a href="https://github.com/LiGuanyao0928/CanvasX" target="_blank" rel="noopener">GitHub 仓库</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

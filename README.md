@@ -34,8 +34,8 @@ Canvas 没写清楚的截止日期，推送手机提醒，还能同步进日历�
 和 Python 3。
 
 ```bash
-git clone https://github.com/LiGuanyao0928/canvas-project.git
-cd canvas-project
+git clone https://github.com/LiGuanyao0928/CanvasX.git
+cd CanvasX
 ./setup.sh
 ```
 
@@ -52,8 +52,8 @@ cd canvas-project
 Edge 浏览器装的），一般不用额外装。
 
 ```bat
-git clone https://github.com/LiGuanyao0928/canvas-project.git
-cd canvas-project
+git clone https://github.com/LiGuanyao0928/CanvasX.git
+cd CanvasX
 setup.bat
 ```
 
@@ -69,8 +69,8 @@ Linux 上还没有独立窗口的原生客户端（这边没有能实际测试�
 推送/日历导出功能都在），网页仪表盘用浏览器打开，定时靠 cron。
 
 ```bash
-git clone https://github.com/LiGuanyao0928/canvas-project.git
-cd canvas-project
+git clone https://github.com/LiGuanyao0928/CanvasX.git
+cd CanvasX
 ./setup_linux.sh
 ```
 
